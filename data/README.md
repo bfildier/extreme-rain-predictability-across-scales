@@ -1,0 +1,1 @@
+This directory contains the input data required to test the analysis over a subset of the whole data. "Data" refers to climate model output or reanalysis data for instance. Define subdirectories whose names inform on the source of this data.
