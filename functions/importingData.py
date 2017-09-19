@@ -24,16 +24,20 @@ from environmentAndDirectories import *
 ## between those dates
 #
 # 1. Get inputfiles in correct format
-def getInputfiles(varid,inputdir,inputfiles=None,dates=None):
+def getProcessedFiles(varid,inputdir,inputfiles=None,dates=None):
 
 	"""Based on a variable ID and input directory, output a list of corresponding 
 	filenames for preprocessed files.
-	 - filenames have to start with $varid
-	 - filenames must contain the time as .YYYYMMDD.nc"""
+	 - $inputfiles are in format $varid_*_date1-date2.nc
+	 (add directory to filenames if not present)
+	 - dates is a pair of dates in format YYYYmmddHHMM
+	 (YYYYmmddHHMM <= accepted files < YYYYmmddHHMM)"""
+
+	print("enter getProcessedFiles")
 
 	## Get the list of input files
-	if inputfiles == None:
-		if dates == None:    # Get all matching files
+	if inputfiles is None:
+		if dates is None:    # Get all matching files
 			inputfiles = glob.glob(os.path.join(inputdir,varid.replace('_','-')+"_*.nc"))
 		else:    # Filter between dates
 			dt_bnds = [datetime(int(d[:4]),int(d[4:6]),int(d[6:8])) for d in dates]
@@ -49,7 +53,8 @@ def getInputfiles(varid,inputdir,inputfiles=None,dates=None):
 		inputfiles = [os.path.join(inputdir,f) if inputdir not in f else f for f in inputfiles]
 	inputfiles.sort()
 	if len(inputfiles) == 0:
-		print(inputdir, varid, dates)
+		print("No processed file found for varid %s and dates %s in %s."%\
+			(varid,string.join(dates,'-'),inputdir))
 	return inputfiles
 #
 # 2. Get values for processed data ($dataroot/preprocessed/$case/$freq/*)
@@ -57,10 +62,11 @@ def getProcessedValues(varid,inputdir,inputfiles=None,dates=None,concataxis=0):
 
     """Get $varid values from processed data directory $inputdir."""
 
+    print("enter getProcessedValues")
+
     if inputfiles is None:
-        inputfiles = getInputfiles(varid,inputdir,inputfiles,dates)
+        inputfiles = getProcessedFiles(varid,inputdir,inputfiles,dates)
     if len(inputfiles) == 0:
-        print("Processed files: no acceptable input file for %s."%varid)
         return
     values_list = []
     if len(inputfiles) == 0:
@@ -76,37 +82,62 @@ def getProcessedValues(varid,inputdir,inputfiles=None,dates=None,concataxis=0):
     values_array = np.concatenate(values_list,axis=concataxis)
     return values_array
 
-## Get values from original hourly output
-def getSimulationValues(varid,inputdir,dates=None,subset='tropics',handle=None):
+def getSimulationFiles(varid,inputdir,inputfiles=None,dates=None,handle=None):
 
-	"""Get $varid values from CAM/SPCAM history files in $inputdir.
-	$dates is a tuple of time boundaries (YYYYMMDDhhmm <= inputfiles < YYYYMMDDhhmm)"""
+	"""Based on a variable ID and input directory, return a list of corresponding
+	filenames for simulation files (CAM history files).
+	- $inputfiles are in format *.h?.YYYY-mm-dd-SSSSS.nc
+	 (add directory to filenames if not present)
+	- dates is a pair of dates in format YYYYmmddHHMM
+	(YYYYmmddHHMM <= accepted files < YYYYmmddHHMM)"""
 
-	## Find valid inputfiles
+	print("enter getSimulationFiles")
+
 	# Define search pattern based on file handle:
 	pattern = "*.????-??-??-?????.nc"
 	if handle is not None:
 		pattern = "*.%s%s"%(handle,pattern[1:])
 	# Search inputfiles
-	inputfiles = []
-	if dates is not None:
-		dt_bnds = [datetime(int(d[:4]),int(d[4:6]),int(d[6:8]),int(d[8:10]),int(d[10:12]))\
-		for d in dates]
-	for file in glob.glob(os.path.join(inputdir,pattern)):
-		filename = os.path.basename(file)
-		if dates is not None: 
-			dt_info = filename.split('.')[-2].replace('-','')
-			dt = datetime(int(dt_info[:4]),int(dt_info[4:6]),int(dt_info[6:8]))+\
-				timedelta(seconds=int(dt_info[8:13]))
-			if dt < dt_bnds[0] or dt >= dt_bnds[1]:
-				continue
-		inputfiles.append(file)
+	if inputfiles is None:
+		inputfiles = []
+		if dates is not None:
+			dt_bnds = [datetime(int(d[:4]),int(d[4:6]),int(d[6:8]),int(d[8:10]),int(d[10:12]))\
+			for d in dates]
+		for file in glob.glob(os.path.join(inputdir,pattern)):
+			filename = os.path.basename(file)
+			if dates is not None: 
+				dt_info = filename.split('.')[-2].replace('-','')
+				dt = datetime(int(dt_info[:4]),int(dt_info[4:6]),int(dt_info[6:8]))+\
+					timedelta(seconds=int(dt_info[8:13]))
+				if dt < dt_bnds[0] or dt >= dt_bnds[1]:
+					continue
+			inputfiles.append(file)
+	else:
+		## Append dirname to all files if necessary
+		inputfiles = [os.path.join(inputdir,f) if inputdir not in f else f for f in inputfiles]
+	
 	inputfiles.sort()
+	if len(inputfiles) == 0:
+		print("No simulation history file found for dates %s in %s."%\
+			(string.join(dates,'-'),inputdir))
+	return inputfiles
+
+## Get values from original hourly output
+def getSimulationValues(varid,inputdir,inputfiles=None,dates=None,subset='tropics',handle=None):
+
+	"""Get $varid values from CAM/SPCAM history files in $inputdir.
+	dates is a pair of dates in format YYYYmmddHHMM
+	(YYYYmmddHHMM <= accepted files < YYYYmmddHHMM)"""
+	
+	print("enter getSimulationValues")
+
+	## Find valid inputfiles
+	if inputfiles is None:
+		inputfiles = getSimulationFiles(varid,inputdir,inputfiles,dates,handle)
 	## Extract data
 
 	# Abort if no inputfile match date range
 	if len(inputfiles) == 0:
-		print("    History files: no acceptable input file for %s.")%varid
 		return
 
 	values_list = []
@@ -122,7 +153,7 @@ def getSimulationValues(varid,inputdir,dates=None,subset='tropics',handle=None):
 		return 
 	# If found
 	print("%s found in history files"%varid)
-	print("  Importing %s\n  from\n  %s\n  to\n  %s"%(varid,inputfiles[0],inputfiles[-1]))
+	print("Importing %s\n  from\n  %s\n  to\n  %s"%(varid,inputfiles[0],inputfiles[-1]))
 	values = np.concatenate(values_list,axis=0)
 	## Reduce domain
 	if subset is not 'global':
@@ -147,6 +178,8 @@ def getValues(varid,dataroot,compset,subset,experiment,time_stride,time_type='A'
 	Primarily load data from CAM history files; if the variable does not exist,
 	look at the preprocessed variables."""
 
+	print("enter getValues")
+
 	# Load history files settings and pick corresponding input directory/historyfile index
 	settings = getCAMHistoryFilesSettings()
 	handle = None
@@ -161,7 +194,7 @@ def getValues(varid,dataroot,compset,subset,experiment,time_stride,time_type='A'
 	inputdir, inputdir_processed_day, inputdir_processed_1hr, inputdir_results,\
 	 inputdir_fx = getInputDirectories(dataroot,compset,experiment)
 	# Try history files in case this is an original varid
-	values = getSimulationValues(varid,inputdir,dates,subset,handle)
+	values = getSimulationValues(varid,inputdir,None,dates,subset,handle)
 	if values is not None:
 		return values
 

@@ -26,8 +26,8 @@ if __name__ == "__main__":
 		inputdir_fx)
 	print()
 
-	print("--Test getInputFiles")
-	inputfiles = getInputfiles('PRECT',inputdir_processed_1hr)
+	print("--Test getProcessedFiles")
+	inputfiles = getProcessedFiles('PRECT',inputdir_processed_1hr)
 	print("Hourly data:", inputfiles)
 	print()
 
@@ -41,7 +41,7 @@ if __name__ == "__main__":
 	print()
 
 	print("--Test getSimulationValues")
-	values = getSimulationValues('PRECT',inputdir,dates,handle='h0')
+	values = getSimulationValues('PRECT',inputdir,inputfiles=None,dates=dates,handle='h0')
 	if values is not None:
 		print("values.shape =", values.shape)
 	print()
