@@ -186,7 +186,7 @@ def getValues(varid,dataroot,compset,subset,experiment,time_stride,time_type='A'
 	for k in settings.keys():
 		v = settings[k]
 		if v[0] == time_stride and v[1] == time_type:
-			handle = k
+			handle = keys
 			pass
 	if handle is None:
 		print("No history file has the correct time_stride or averaging type.\n Rewrite function.")
