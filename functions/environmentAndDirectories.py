@@ -1,3 +1,10 @@
+"""@package docstring
+Module environmentAndDirectories
+
+Contains functions to define directory structure and related history files 
+settings.
+"""
+
 import socket, os
 
 ## Own functions

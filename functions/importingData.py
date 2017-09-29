@@ -1,3 +1,14 @@
+"""@package docstring
+Module importingData
+
+Contains
+- functions to import variables between specific dates at various time
+resolutions, from model output files or processed files.
+If the variable exists in CAM, directly import it from CAM history files. If
+not, import it from the processed variables.
+- functions to import fixed quantities (pressure coordinate function, areacella)
+"""
+
 ###--- Modules ---###
 
 import glob
