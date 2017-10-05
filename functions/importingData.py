@@ -1,5 +1,4 @@
-"""@package docstring
-Module importingData
+"""Module importingData
 
 Contains
 - functions to import variables between specific dates at various time
@@ -33,8 +32,7 @@ from environmentAndDirectories import *
 ## - if inputfiles is given, use this list in priority
 ## - if inputfiles is not given but dates is given, use corresponding files
 ## between those dates
-#
-# 1. Get inputfiles in correct format
+## Get processed file names in correct format 
 def getProcessedFiles(varid,inputdir,inputfiles=None,dates=None):
 
 	"""Based on a variable ID and input directory, output a list of corresponding 
@@ -67,8 +65,8 @@ def getProcessedFiles(varid,inputdir,inputfiles=None,dates=None):
 		print("No processed file found for varid %s and dates %s in %s."%\
 			(varid,string.join(dates,'-'),inputdir))
 	return inputfiles
-#
-# 2. Get values for processed data ($dataroot/preprocessed/$case/$freq/*)
+
+## Get values from processed data files ($dataroot/preprocessed/$case/$freq/*)
 def getProcessedValues(varid,inputdir,inputfiles=None,dates=None,concataxis=0):
 
     """Get $varid values from processed data directory $inputdir."""
@@ -180,7 +178,7 @@ def getSimulationValues(varid,inputdir,inputfiles=None,dates=None,subset='tropic
 		values = values[lat_slice_multidim]
 	return values
 
-
+# Main function to extract data values from processed files or history files
 def getValues(varid,dataroot,compset,subset,experiment,time_stride,time_type='A',dates=None):
 
 	"""Wrapper around the other 'get*Values' functions that loads the data 
@@ -215,14 +213,12 @@ def getValues(varid,dataroot,compset,subset,experiment,time_stride,time_type='A'
 
 	return values
 
-
-## Reads in file lev_fx_* with the required information
-## Returns a function which takes a surface pressure value
-## and returns a vector of pressure values
+## Obtains the 'computeP' function for a given simulation
 def getPressureCoordinateFunction(input_lev_file):
 
-	"""Returns a function that derives the pressure coordinate values
-	from pressure values at the surface sigma level."""
+	"""Reads in file lev_fx_* with the required information (hyam, hybm, P0).
+	Returns a function that derives the pressure coordinate values on sigma levels
+	from arrays of surface pressure values."""
 
 	fh = Dataset(input_lev_file,'r')
 	hyam = fh.variables['hyam'][:]

@@ -1,22 +1,28 @@
-"""@package docstring
-Module environmentAndDirectories
+"""Module environmentAndDirectories
 
 Contains functions to define directory structure and related history files 
 settings.
 """
 
+#---- modules ----#
+
 import socket, os
 
-## Own functions
+#---- Own functions ----#
 currentpath = os.path.dirname(os.path.realpath(__file__))
 # sys.path.insert(0,os.path.join(os.path.dirname(currentpath),'functions'))
 
-###--- Functions ---###
+#---- Functions ----#
 
-# Define input directories for different platforms
+## Define input directories for different platforms
 def getInputDirectories(dataroot,compset,experiment):
 
-	"""Define input directories for different platforms"""
+	"""Arguments:
+		- dataroot is data tree root directory
+		- compset is FSPCAMm_AMIP or FAMIC5
+		- experiment is piControl of abrupt4xCO2
+	Returns inputdir, inputdir_processed_day, inputdir_processed_1hr,
+		inputdir_results, inputdir_fx."""
 
 	hostname = socket.gethostname()
 	case = "bf_%s_%s"%(compset,experiment)
@@ -36,12 +42,16 @@ def getInputDirectories(dataroot,compset,experiment):
 	return inputdir, inputdir_processed_day, inputdir_processed_1hr,\
 		inputdir_results, inputdir_fx
 
+## Get time stride, type (A or I) and number or time slices for CAM history files
 def getCAMHistoryFilesSettings():
 
-	"""Get time stride, type (A or I) and number or time slices per file."""
+	"""Returns a dict where keys are file handles h0, h1, ... and values are
+	tuples (time stride, average type, number of time slices per file)."""
 
 	historyFilesSettings = dict()
 	historyFilesSettings['h0'] = ('1hr','A',1)
 	historyFilesSettings['h1'] = ('day','A',1)
 
 	return historyFilesSettings
+
+	
