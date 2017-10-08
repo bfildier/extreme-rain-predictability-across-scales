@@ -15,6 +15,8 @@ from scipy.interpolate import lagrange
 currentpath = os.path.dirname(os.path.realpath(__file__))
 sys.path.insert(0,os.path.join(os.path.dirname(currentpath),'functions'))
     
+from defineDaskParameters import *
+
 #---- Parameters ----#
 ## Default number of bins per logarithmic decade.
 nbpd = 10

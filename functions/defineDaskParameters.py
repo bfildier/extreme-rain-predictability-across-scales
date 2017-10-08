@@ -1,7 +1,9 @@
-"""@package docstring
-Module defineDaskParameters
+"""Module defineDaskParameters
 
-Define size of chunks based on the numbe of nodes and processors used.
+Define parameters related to the use of dask arrays that are common across modules
 """
 
+## Default compute action for dask arrays
+da_compute_default = False
+## Size of dask array chunks
 chunks = 100000

@@ -19,7 +19,6 @@ from defineDaskParameters import *
     
 #---- Parameters ----#
 
-
 #---- Functions ----# 
 
 ## Extracts a subset of data points for further statistical analysis.
@@ -47,7 +46,7 @@ def sample1d(values,subset=None):
 	return values[ind_sub]
 
 ## Computes mean of values over selected points
-def computeTimeHorizontalMean(values,ind,is_3D,da_compute=False):
+def computeTimeHorizontalMean(values,ind,is_3D,da_compute=da_compute_default):
 
 	"""Arguments:
 		- values (dask.array or numpy.ndarray)
@@ -74,6 +73,7 @@ def computeTimeHorizontalMean(values,ind,is_3D,da_compute=False):
 	ndims = len(vshape)
 	ishape = ind.shape
 
+	# Extend dimensions of indices
 	if is_3D and ishape != vshape:
 		# Then check that all dimensions match except the vertical one (which 
 		# must be in second position)
