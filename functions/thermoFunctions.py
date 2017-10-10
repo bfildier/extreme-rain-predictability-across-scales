@@ -160,7 +160,7 @@ def moistAdiabaticLapseRateSimple(temp,pres,spechum):
 
 ## Moist adiabatic temperature profile on sigma-levels from values of 
 ## surface temperature, and atmospheric pressure and soecific humidity
-def moistAdiabatSimple(surftemp,pres,spechum,levdim=1):
+def moistAdiabatSimple(surftemp,pres,spechum,levdim=0):
 
     """Vertically integrate the analytic expression for the moist adiabatic 
     lapse rate from surface values (K).
@@ -168,6 +168,16 @@ def moistAdiabatSimple(surftemp,pres,spechum,levdim=1):
         - Ts (K, dimensions: [Nt,1,Nlat,Nlon])
         - p (Pa, dimensions: [Nt,Nlev,Nlat,Nlon])
         - q (kg/kg, dimensions: [Nt,Nlev,Nlat,Nlon])
+    Careful:
+        When using this function with da.map_blocks, make sure the vertical
+        coordinate is not subdivided into chunks; otherwise the temperature profile 
+        will show zigzags.
+        This function works with the vertical coordinate in first dimension. Other
+        configurations haven't been tested.
+    Usage with dask:
+        Make sure the vertical coordinate is in dimension 0
+        Make sure the chunks are the same
+        Execute da.map_blocks(moistAdiabatSimple,surtemp,pres,spechum)
     """
 
     if pres.__class__ == np.ndarray:
@@ -197,12 +207,11 @@ def moistAdiabatSimple(surftemp,pres,spechum,levdim=1):
                                              pres[ind_low],
                                              spechum[ind_low])
         dp = cn.subtract(pres[ind_high],pres[ind_low])
-        # print(k)
         temp[ind_high] = cn.add(temp[ind_low],cn.multiply(dTdp,dp))
 
-    # Convert to dask.array
-    if pres.__class__ == da.core.Array:
-        temp = da.from_array(temp,chunks=pres.chunks)
+    # # Convert to dask.array # Unnecessary when usign with map_blocks
+    # if pres.__class__ == da.core.Array:
+    #     temp = da.from_array(temp,chunks=pres.chunks)
 
     return temp
 
