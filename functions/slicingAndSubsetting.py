@@ -15,7 +15,7 @@ import dask.array as da
 currentpath = os.path.dirname(os.path.realpath(__file__))
 sys.path.insert(0,os.path.join(os.path.dirname(currentpath),'functions'))
 
-from defineDaskParameters import *
+from daskOptions import *
     
 #---- Parameters ----#
 
@@ -66,7 +66,7 @@ def computeTimeHorizontalMean(values,ind,is_3D,da_compute=da_compute_default):
 	elif values.__class__ == da.core.Array:
 		cn = da
 	else:
-		print("Unvalid data type:", type(sample))
+		print("Unvalid data type:", type(values))
 		return
 
 	vshape = values.shape

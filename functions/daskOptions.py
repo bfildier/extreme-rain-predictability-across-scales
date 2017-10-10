@@ -1,4 +1,4 @@
-"""Module defineDaskParameters
+"""Module daskOptions
 
 Define parameters related to the use of dask arrays that are common across modules
 """

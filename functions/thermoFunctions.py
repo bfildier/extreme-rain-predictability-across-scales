@@ -13,6 +13,7 @@ import dask.array as da
 
 #---- Own modules ----#
 from thermoConstants import *
+from daskOptions import *
 
 ## Air density from values of T, p and q
 def airDensity(temp,pres,shum):
@@ -24,11 +25,19 @@ def airDensity(temp,pres,shum):
     Returns:
         - density (kg/m3) values in the same format and type"""
 
-    print("ADAPT THIS FUNCTION FOR DASK")
+    if temp.__class__ == np.ndarray:
+        cn = np # stands for 'class name'
+    elif temp.__class__ == da.core.Array:
+        cn = da
+    else:
+        print("Unvalid data type:", type(temp))
+        return
 
-    rho_dry = np.divide(pres,R_d*temp)
-    virtual_coef = np.divide(eps+shum,eps*(1+shum))
-    return np.divide(rho_dry,virtual_coef)
+    rho_dry = cn.divide(pres,R_d*temp)
+    virtual_coef = cn.divide(eps+shum,eps*(1+shum))
+    rho_moist = cn.divide(rho_dry,virtual_coef)
+
+    return rho_moist
 
 ## Saturation vapor pressure from Buck (1996)
 def saturationVaporPressure(temp):
@@ -36,27 +45,35 @@ def saturationVaporPressure(temp):
     """Argument: Temperature (K) as a numpy.ndarray or dask.array
     Returns: saturation vapor pressure (Pa) in the same format."""
 
-    print("ADAPT THIS FUNCTION FOR DASK")
+    def qvstar_numpy(temp):
 
-    T_0 = 273.15
-    whereAreNans = np.isnan(temp)
-    temp_wo_Nans = temp.copy()
-    temp_wo_Nans[whereAreNans] = 0.
-    # Initialize
-    e_sat = np.zeros(temp.shape)
-    e_sat[whereAreNans] = np.nan
-    # T > 0C
-    overliquid = np.array((temp_wo_Nans > T_0),dtype=bool)
-    e_sat_overliquid = 0.61121*np.exp(np.multiply(18.678-(temp-T_0)/234.5,
-                                                  np.divide((temp-T_0),257.14+(temp-T_0))))
-    e_sat[overliquid] = e_sat_overliquid[overliquid]
-    # T < 0C 
-    overice = np.array((temp_wo_Nans < T_0),dtype=bool)
-    e_sat_overice = 0.61115*np.exp(np.multiply(23.036-(temp-T_0)/333.7,
-                                               np.divide((temp-T_0),279.82+(temp-T_0))))
-    e_sat[overice] = e_sat_overice[overice]
-    
-    return e_sat*1000       # in Pa
+        T_0 = 273.15
+        whereAreNans = np.isnan(temp)
+        temp_wo_Nans = temp.copy()
+        temp_wo_Nans[whereAreNans] = 0.
+        # Initialize
+        e_sat = np.zeros(temp.shape)
+        e_sat[whereAreNans] = np.nan
+        # T > 0C
+        overliquid = (temp_wo_Nans > T_0)
+        e_sat_overliquid = 0.61121*np.exp(np.multiply(18.678-(temp-T_0)/234.5,
+                                                      np.divide((temp-T_0),257.14+(temp-T_0))))
+        e_sat[overliquid] = e_sat_overliquid[overliquid]
+        # T < 0C 
+        overice = (temp_wo_Nans < T_0)
+        e_sat_overice = 0.61115*np.exp(np.multiply(23.036-(temp-T_0)/333.7,
+                                                   np.divide((temp-T_0),279.82+(temp-T_0))))
+        e_sat[overice] = e_sat_overice[overice]
+
+        return e_sat*1000       # in Pa
+
+    if temp.__class__ == np.ndarray:
+        return qvstar_numpy(temp)
+    elif temp.__class__ == da.core.Array:
+        return temp.map_blocks(qvstar_numpy)
+    else:
+        print("Unvalid data type:", type(temp))
+        return
 
 ## Compute the saturation specific humidity based on the expressions by Buck
 def saturationSpecificHumidity(temp,pres):
@@ -64,19 +81,35 @@ def saturationSpecificHumidity(temp,pres):
     """Convert from estimate of saturation vapor pressure to saturation specific
     humidity using the approximate equation qvsat ~ epsilon"""
 
-    print("ADAPT THIS FUNCTION FOR DASK")
+    if temp.__class__ == np.ndarray:
+        cn = np # stands for 'class name'
+    elif temp.__class__ == da.core.Array:
+        cn = da
+    else:
+        print("Unvalid data type:", type(temp))
+        return
 
     e_sat = saturationVaporPressure(temp)
-    return np.divide(e_sat/R_v,pres/R_d)
+    qvstar = cn.divide(e_sat/R_v,pres/R_d)
+
+    return qvstar
 
 ## Dry-adiabatic lapse rate
 def dryAdiabaticLapseRate(temp,pres,spechum):
 
     """In pressure coordinates: Gamma_d/(rho*g) (K/Pa)."""
 
+    if temp.__class__ == np.ndarray:
+        cn = np # stands for 'class name'
+    elif temp.__class__ == da.core.Array:
+        cn = da
+    else:
+        print("Unvalid data type:", type(temp))
+        return
+
     dryGAmma_zCoord = gg/c_pd   # K/m
     rho = airDensity(temp,pres,spechum) # kg/m3
-    dryGAmma_pCoord = dryGAmma_zCoord/(rho*gg)  # K/Pa
+    dryGAmma_pCoord = cn.divide(dryGAmma_zCoord,(rho*gg))  # K/Pa
 
     return dryGAmma_pCoord
 
@@ -87,38 +120,94 @@ def moistAdiabatFactor(temp,pres):
     Clausius-Clapeyron formula and the hydrostatic equation. Ignores conversion
     to ice and graupel and condensate loading."""
 
-    print("ADAPT THIS FUNCTION FOR DASK")
+    if temp.__class__ == np.ndarray:
+        cn = np # stands for 'class name'
+    elif temp.__class__ == da.core.Array:
+        cn = da
+    else:
+        print("Unvalid data type:", type(temp))
+        return
 
     inshape = temp.shape
     qvstar = saturationSpecificHumidity(temp,pres)
 
-    coef_m = np.divide(np.ones(inshape)+np.divide(L_v*qvstar,
-                                                 R_d*temp),
-                      np.ones(inshape)+np.divide(L_v**2.*qvstar,
-                                                 c_pd*R_v*np.power(temp,2.)))
+    coef_m = cn.divide(1+cn.divide(L_v*qvstar,R_d*temp),
+                       1+cn.divide(L_v**2.*qvstar,c_pd*R_v*cn.power(temp,2.)))
 
     return coef_m
 
 ## Moist adiabatic lapse rate from condensation over liquid
-def moistAdiabaticLapseRateLiquid(temp,pres,spechum):
+def moistAdiabaticLapseRateSimple(temp,pres,spechum):
 
     """Returns the value of the moist adiabatic lapse rate as derived in textbooks
     from the conservation of liquid moist static energy. Convert on pressure
     coordinate by assuming hydrostaticity (K/Pa)."""
 
-    print("ADAPT THIS FUNCTION FOR DASK")
+    if temp.__class__ == np.ndarray:
+        cn = np # stands for 'class name'
+    elif temp.__class__ == da.core.Array:
+        cn = da
+    else:
+        print("Unvalid data type:", type(temp))
+        return
 
     Gamma_d_pCoord = dryAdiabaticLapseRate(temp,pres,spechum)  # K/Pa
     coef_m = moistAdiabatFactor(temp,pres)          # Unitless
 
-    return Gamma_d_pCoord*coef_m    # K/Pa
+    Gamma_m_pCoord = cn.multiply(Gamma_d_pCoord,coef_m) # K/Pa
+
+    return Gamma_m_pCoord   
 
 ## Moist adiabatic temperature profile on sigma-levels from values of 
 ## surface temperature, and atmospheric pressure and soecific humidity
-def moistAdiabat(surftemp,pres,spechum):
+def moistAdiabatSimple(surftemp,pres,spechum,levdim=1):
 
     """Vertically integrate the analytic expression for the moist adiabatic 
-    lapse rate from surface values (K)."""
+    lapse rate from surface values (K).
+    Arguments:
+        - Ts (K, dimensions: [Nt,1,Nlat,Nlon])
+        - p (Pa, dimensions: [Nt,Nlev,Nlat,Nlon])
+        - q (kg/kg, dimensions: [Nt,Nlev,Nlat,Nlon])
+    """
+
+    if pres.__class__ == np.ndarray:
+        cn = np # stands for 'class name'
+    elif pres.__class__ == da.core.Array:
+        cn = da
+    else:
+        print("Unvalid data type:", type(pres))
+        return
+
+    # sh_shape = spechum.shape
+    # ts_shape = surftemp.shape
+    p_shape = pres.shape
+    ndims = len(pres.shape)
+    ind_low = [slice(None)]*ndims
+    ind_low[levdim] = 0
+    ind_high = ind_low.copy()
+    Nlev = p_shape[levdim]
+
+    temp = np.empty(p_shape)
+    temp[ind_low] = surftemp
+
+    for k in range(1,Nlev):
+        ind_low[levdim] = k-1
+        ind_high[levdim] = k
+        dTdp = moistAdiabaticLapseRateSimple(temp[ind_low],
+                                             pres[ind_low],
+                                             spechum[ind_low])
+        dp = cn.subtract(pres[ind_high],pres[ind_low])
+        # print(k)
+        temp[ind_high] = cn.add(temp[ind_low],cn.multiply(dTdp,dp))
+
+    # Convert to dask.array
+    if pres.__class__ == da.core.Array:
+        temp = da.from_array(temp,chunks=pres.chunks)
+
+    return temp
+
+
+
 
 
 ## Implement Newton's method to find the zeros of a function where
