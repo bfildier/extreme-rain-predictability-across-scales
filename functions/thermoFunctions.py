@@ -177,7 +177,7 @@ def moistAdiabatSimple(surftemp,pres,spechum,levdim=0):
     Usage with dask:
         Make sure the vertical coordinate is in dimension 0
         Make sure the chunks are the same
-        Execute da.map_blocks(moistAdiabatSimple,surtemp,pres,spechum)
+        Execute da.map_blocks(moistAdiabatSimple,Ts,p,q)
     """
 
     if pres.__class__ == np.ndarray:
