@@ -50,7 +50,6 @@ def singleLevelScalingFromOmegaQ(spechum,omega,efficiency=None):
         return efficiency*omega*spechum
 
 
-
 ## Compute vertical integral on pressure coordinates
 def verticalPressureIntegral(pres,values=None,levdim=0):
 

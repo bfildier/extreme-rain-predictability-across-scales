@@ -178,7 +178,7 @@ def getSimulationValues(varid,inputdir,inputfiles=None,dates=None,subset='tropic
 	return values
 
 # Main function to extract data values from processed files or history files
-def getValues(varid,dataroot,compset,subset,experiment,time_stride,time_type='A',dates=None):
+def getValues(varid,compset,subset,experiment,time_stride,time_type='A',dates=None):
 
 	"""Wrapper around the other 'get*Values' functions that loads the data 
 	for a given time resolution (stride), type and date range, for a compset
@@ -197,7 +197,8 @@ def getValues(varid,dataroot,compset,subset,experiment,time_stride,time_type='A'
 			handle = k
 			pass
 	if handle is None:
-		print("No history file has the correct time_stride or averaging type.\n Rewrite function.")
+		print("No history file has the correct time_stride or averaging type.")
+		print("Rewrite function to average to various resolutions.")
 	# Load inputdirectories
 	inputdir, inputdir_processed_day, inputdir_processed_1hr, inputdir_results,\
 	 inputdir_fx = getInputDirectories(compset,experiment)
