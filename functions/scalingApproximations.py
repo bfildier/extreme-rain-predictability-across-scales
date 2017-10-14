@@ -34,7 +34,7 @@ def singleLevelScalingFromOmegaT(omega,temp,pres,efficiency=None):
 
     if efficiency is None:
         return omega*qvstar
-    else
+    else:
         return efficiency*omega*qvstar
 
 ## Scaling approximation from single-level omega and q
@@ -46,7 +46,7 @@ def singleLevelScalingFromOmegaQ(spechum,omega,efficiency=None):
 
     if efficiency is None:
         return omega*spechum
-    else
+    else:
         return efficiency*omega*spechum
 
 
