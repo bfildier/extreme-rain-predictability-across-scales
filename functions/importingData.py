@@ -14,6 +14,7 @@ import glob
 import sys,os
 import string
 import numpy as np
+import dask.array as da
 from datetime import date, time, datetime, timedelta
 from netCDF4 import Dataset
 
@@ -61,12 +62,14 @@ def getProcessedFiles(varid,inputdir,inputfiles=None,dates=None):
 		inputfiles = [os.path.join(inputdir,f) if inputdir not in f else f for f in inputfiles]
 	inputfiles.sort()
 	if len(inputfiles) == 0:
+		if dates is None:
+			dates=[]
 		print("No processed file found for varid %s and dates %s in %s."%\
-			(varid,string.join(dates,'-'),inputdir))
+			(varid,'-'.join(dates),inputdir))
 	return inputfiles
 
 ## Get values from processed data files ($dataroot/preprocessed/$case/$freq/*)
-def getProcessedValues(varid,inputdir,inputfiles=None,dates=None,concataxis=0):
+def getProcessedValues(varid,inputdir,inputfiles=None,dates=None,concataxis=0,daskarray=True):
 
     """Get $varid values from processed data directory $inputdir."""
 
@@ -131,13 +134,16 @@ def getSimulationFiles(varid,inputdir,inputfiles=None,dates=None,handle=None):
 	return inputfiles
 
 ## Get values from original hourly output
-def getSimulationValues(varid,inputdir,inputfiles=None,dates=None,subset='tropics',handle=None):
+def getSimulationValues(varid,inputdir,inputfiles=None,dates=None,subset='tropics',handle=None,daskarray=True):
 
 	"""Get $varid values from CAM/SPCAM history files in $inputdir.
 	dates is a pair of dates in format YYYYmmddHHMM
 	(YYYYmmddHHMM <= accepted files < YYYYmmddHHMM)"""
 	
-	# print("enter getSimulationValues")
+	if daskarray:
+		cn = da
+	else:
+		cn = np    
 
 	## Find valid inputfiles
 	if inputfiles is None:
@@ -162,7 +168,8 @@ def getSimulationValues(varid,inputdir,inputfiles=None,dates=None,subset='tropic
 	# If found
 	print("%s found in history files"%varid)
 	print("Importing %s\n  from\n  %s\n  to\n  %s"%(varid,inputfiles[0],inputfiles[-1]))
-	values = np.concatenate(values_list,axis=0)
+	values = cn.concatenate(values_list,axis=0)
+	print(values.shape)
 	## Reduce domain
 	if subset is not 'global':
 		fh = Dataset(inputfiles[0],'r')
@@ -174,11 +181,12 @@ def getSimulationValues(varid,inputdir,inputfiles=None,dates=None,subset='tropic
 		nlat = values.shape[indlat]
 		lat_slice = slice(nlat//3,2*(nlat//3))
 		lat_slice_multidim = [slice(None)]*(indlat)+[lat_slice]+[slice(None)]*(ndims-indlat-1)
+		print(lat_slice_multidim)
 		values = values[lat_slice_multidim]
 	return values
 
 # Main function to extract data values from processed files or history files
-def getValues(varid,compset,subset,experiment,time_stride,time_type='A',dates=None):
+def getValues(varid,compset,subset,experiment,time_stride,time_type='A',dates=None,daskarray=True):
 
 	"""Wrapper around the other 'get*Values' functions that loads the data 
 	for a given time resolution (stride), type and date range, for a compset
@@ -203,13 +211,13 @@ def getValues(varid,compset,subset,experiment,time_stride,time_type='A',dates=No
 	inputdir, inputdir_processed_day, inputdir_processed_1hr, inputdir_results,\
 	 inputdir_fx = getInputDirectories(compset,experiment)
 	# Try history files in case this is an original varid
-	values = getSimulationValues(varid,inputdir,None,dates,subset,handle)
+	values = getSimulationValues(varid,inputdir,None,dates,subset,handle,daskarray=daskarray)
 	if values is not None:
 		return values
 
 	# Now look at preprocessed variables
 	inputdir_processed = locals()["inputdir_processed_%s"%time_stride]
-	values = getProcessedValues(varid,inputdir_processed,inputfiles=None,dates=dates)
+	values = getProcessedValues(varid,inputdir_processed,inputfiles=None,dates=dates,daskarray=daskarray)
 
 	return values
 

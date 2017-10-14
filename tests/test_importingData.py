@@ -35,6 +35,7 @@ if __name__ == "__main__":
 	print("* With required arguments only:")
 	values = getProcessedValues('PRECT', inputdir_processed_day)
 	print("values.shape =", values.shape)
+	print("values type =", values.__class__)
 	print("* With specified inputfiles (bypass argument 'inputdir'):")
 	values = getProcessedValues('PRECT', inputdir_processed_day, inputfiles = inputfiles)
 	print("values.shape =", values.shape)
@@ -44,6 +45,7 @@ if __name__ == "__main__":
 	values = getSimulationValues('PRECT',inputdir,inputfiles=None,dates=dates,handle='h0')
 	if values is not None:
 		print("values.shape =", values.shape)
+		print("values type =", values.__class__)
 	print()
 
 	print("--Test getValues")
@@ -53,6 +55,7 @@ if __name__ == "__main__":
 			experiment=experiment,time_stride='1hr',time_type='A',dates=dates)
 		if values is not None:
 			print("values.shape =",values.shape)
+			print("values type =", values.__class__)
 	print()
 
 	print("--Test getPressureCoordinateFunction")
