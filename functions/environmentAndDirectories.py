@@ -9,22 +9,27 @@ settings.
 import socket, os
 
 #---- Own functions ----#
-currentpath = os.path.dirname(os.path.realpath(__file__))
+currentpath = os.getcwd()
+## Host name
+hostname = socket.gethostname()
+if hostname == "jollyjumper":
+	## Parent directory to load data
+	dataroot = "/Users/bfildier/Data"
+elif "edison" in hostname or "cori" in hostname:
+	dataroot = "/global/cscratch1/sd/bfildier/lawrencium_runs"
 # sys.path.insert(0,os.path.join(os.path.dirname(currentpath),'functions'))
 
 #---- Functions ----#
 
 ## Define input directories for different platforms
-def getInputDirectories(dataroot,compset,experiment):
+def getInputDirectories(compset,experiment):
 
 	"""Arguments:
-		- dataroot is data tree root directory
 		- compset is FSPCAMm_AMIP or FAMIC5
 		- experiment is piControl of abrupt4xCO2
 	Returns inputdir, inputdir_processed_day, inputdir_processed_1hr,
 		inputdir_results, inputdir_fx."""
 
-	hostname = socket.gethostname()
 	case = "bf_%s_%s"%(compset,experiment)
 	if hostname == "jollyjumper":
 		inputdir = os.path.join(dataroot,"simulations",case)

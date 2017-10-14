@@ -8,7 +8,7 @@ not, import it from the processed variables.
 - functions to import fixed quantities (pressure coordinate function, areacella)
 """
 
-###--- Modules ---###
+#---- Modules ----#
 
 import glob
 import sys,os
@@ -18,12 +18,11 @@ from datetime import date, time, datetime, timedelta
 from netCDF4 import Dataset
 
 ## Own functions
-# currentpath = os.path.dirname(os.path.realpath(__file__))
-# 		
+currentpath = os.path.dirname(os.path.realpath(__file__))
 
 from environmentAndDirectories import *
 
-###--- Functions ---###
+#---- Functions ----#
 
 ## inputfiles is a list of inputfiles to open simultaneously.
 ## dates is a pair of date strings in the form 'YYYYMMDD'
@@ -42,7 +41,7 @@ def getProcessedFiles(varid,inputdir,inputfiles=None,dates=None):
 	 - dates is a pair of dates in format YYYYmmddHHMM
 	 (YYYYmmddHHMM <= accepted files < YYYYmmddHHMM)"""
 
-	print("enter getProcessedFiles")
+	# print("enter getProcessedFiles")
 
 	## Get the list of input files
 	if inputfiles is None:
@@ -71,7 +70,7 @@ def getProcessedValues(varid,inputdir,inputfiles=None,dates=None,concataxis=0):
 
     """Get $varid values from processed data directory $inputdir."""
 
-    print("enter getProcessedValues")
+    # print("enter getProcessedValues")
 
     if inputfiles is None:
         inputfiles = getProcessedFiles(varid,inputdir,inputfiles,dates)
@@ -100,7 +99,7 @@ def getSimulationFiles(varid,inputdir,inputfiles=None,dates=None,handle=None):
 	- dates is a pair of dates in format YYYYmmddHHMM
 	(YYYYmmddHHMM <= accepted files < YYYYmmddHHMM)"""
 
-	print("enter getSimulationFiles")
+	# print("enter getSimulationFiles")
 
 	# Define search pattern based on file handle:
 	pattern = "*.????-??-??-?????.nc"
@@ -138,7 +137,7 @@ def getSimulationValues(varid,inputdir,inputfiles=None,dates=None,subset='tropic
 	dates is a pair of dates in format YYYYmmddHHMM
 	(YYYYmmddHHMM <= accepted files < YYYYmmddHHMM)"""
 	
-	print("enter getSimulationValues")
+	# print("enter getSimulationValues")
 
 	## Find valid inputfiles
 	if inputfiles is None:
@@ -187,7 +186,7 @@ def getValues(varid,dataroot,compset,subset,experiment,time_stride,time_type='A'
 	Primarily load data from CAM history files; if the variable does not exist,
 	look at the preprocessed variables."""
 
-	print("enter getValues")
+	# print("enter getValues")
 
 	# Load history files settings and pick corresponding input directory/historyfile index
 	settings = getCAMHistoryFilesSettings()
@@ -195,13 +194,13 @@ def getValues(varid,dataroot,compset,subset,experiment,time_stride,time_type='A'
 	for k in settings.keys():
 		v = settings[k]
 		if v[0] == time_stride and v[1] == time_type:
-			handle = keys
+			handle = k
 			pass
 	if handle is None:
 		print("No history file has the correct time_stride or averaging type.\n Rewrite function.")
 	# Load inputdirectories
 	inputdir, inputdir_processed_day, inputdir_processed_1hr, inputdir_results,\
-	 inputdir_fx = getInputDirectories(dataroot,compset,experiment)
+	 inputdir_fx = getInputDirectories(compset,experiment)
 	# Try history files in case this is an original varid
 	values = getSimulationValues(varid,inputdir,None,dates,subset,handle)
 	if values is not None:

@@ -1,13 +1,18 @@
 #!/bin/bash
 
+remote_port=$1
+local_port=$2
+
 #-----------------#
 #	Directories	  #
 #-----------------#
 
+LOCAL_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 # REMOTE_WORKDIR="/global/cscratch1/sd/bfildier/dataAnalysis/"\
 # "extreme-rain-predictability-across-scales"
 REMOTE_WORKDIR="/global/homes/b/bfildier/code/dataAnalysis/"\
 "extreme-rain-predictability-across-scales/"
+# REMOTE_WORKDIR="/global/homes/b/bfildier/code/jupyter_dask_examples/"
 REMOTE_SCRIPT_DIR="/global/homes/b/bfildier/scripts/jupyter/"
 SCRIPT_NAME="start_jupyter_notebook.sh"
 
@@ -18,14 +23,14 @@ SCRIPT_NAME="start_jupyter_notebook.sh"
 machine="cori"
 constraint="haswell"
 partition="debug"
-nodes=32
+nodes=2
 time=00:30:00
 
 #---------------------#
 #	Launch notebook   #
 #---------------------#
 
-ssh -Y ${machine}.nersc.gov << EOF
+ssh -Y ${machine}.nersc.gov >1 <<EOF
 # Edit script
 echo "cd ${REMOTE_SCRIPT_DIR}"
 cd ${REMOTE_SCRIPT_DIR}
@@ -36,12 +41,20 @@ sed -i "s/#SBATCH --time=.*/#SBATCH --time=${time}/" ${SCRIPT_NAME}
 echo "cd ${REMOTE_WORKDIR}"
 cd ${REMOTE_WORKDIR}
 echo "Execute jupyter launch script"
-${REMOTE_SCRIPT_DIR}${SCRIPT_NAME}
+touch jupyter_log
+# ${REMOTE_SCRIPT_DIR}${SCRIPT_NAME} 2>&1 | tee jupyter_log && exit 0
+${REMOTE_SCRIPT_DIR}${SCRIPT_NAME} &> >(tee jupyter_log)
 EOF
 
-ssh -Y -N -f -L localhost:8889:localhost:8889 cori.nersc.gov
+scp cori.nersc.gov:${REMOTE_WORKDIR}jupyter_log ${LOCAL_DIR}/
 
-open http://localhost:8889
+remote_port=`cat ${LOCAL_DIR}/jupyter_log | grep "The Jupyter Notebook is running at" | cut -d: -f6 | cut -d\/ -f1` && echo "Press ^C"
+
+ssh -Y -N -f -L localhost:${local_port}:localhost:${remote_port} cori.nersc.gov
+
+echo "Connecting local port ${local_port} to remote port ${remote_port}"
+
+open http://localhost:${local_port}
 
 exit 0
 

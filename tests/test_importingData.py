@@ -21,7 +21,7 @@ if __name__ == "__main__":
 	print("dates      :",dates)
 
 	inputdir, inputdir_processed_day, inputdir_processed_1hr, inputdir_results,\
-	 inputdir_fx = getInputDirectories(dataroot,compset,experiment)
+	 inputdir_fx = getInputDirectories(compset,experiment)
 	print(inputdir, inputdir_processed_day, inputdir_processed_1hr, inputdir_results, \
 		inputdir_fx)
 	print()

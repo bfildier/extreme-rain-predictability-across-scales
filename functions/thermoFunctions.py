@@ -25,17 +25,10 @@ def airDensity(temp,pres,shum):
     Returns:
         - density (kg/m3) values in the same format and type"""
 
-    if temp.__class__ == np.ndarray:
-        cn = np # stands for 'class name'
-    elif temp.__class__ == da.core.Array:
-        cn = da
-    else:
-        print("Unvalid data type:", type(temp))
-        return
-
-    rho_dry = cn.divide(pres,R_d*temp)
-    virtual_coef = cn.divide(eps+shum,eps*(1+shum))
-    rho_moist = cn.divide(rho_dry,virtual_coef)
+    cn = getArrayType(temp)
+    rho_dry = (pres)/(R_d*temp)
+    virtual_coef = (eps+shum)/(eps*(1+shum))
+    rho_moist = (rho_dry)/(virtual_coef)
 
     return rho_moist
 
@@ -81,16 +74,9 @@ def saturationSpecificHumidity(temp,pres):
     """Convert from estimate of saturation vapor pressure to saturation specific
     humidity using the approximate equation qvsat ~ epsilon"""
 
-    if temp.__class__ == np.ndarray:
-        cn = np # stands for 'class name'
-    elif temp.__class__ == da.core.Array:
-        cn = da
-    else:
-        print("Unvalid data type:", type(temp))
-        return
-
+    cn = getArrayType(temp)
     e_sat = saturationVaporPressure(temp)
-    qvstar = cn.divide(e_sat/R_v,pres/R_d)
+    qvstar = (e_sat/R_v)/(pres/R_d)
 
     return qvstar
 
@@ -99,17 +85,10 @@ def dryAdiabaticLapseRate(temp,pres,spechum):
 
     """In pressure coordinates: Gamma_d/(rho*g) (K/Pa)."""
 
-    if temp.__class__ == np.ndarray:
-        cn = np # stands for 'class name'
-    elif temp.__class__ == da.core.Array:
-        cn = da
-    else:
-        print("Unvalid data type:", type(temp))
-        return
-
+    cn = getArrayType(temp)
     dryGAmma_zCoord = gg/c_pd   # K/m
     rho = airDensity(temp,pres,spechum) # kg/m3
-    dryGAmma_pCoord = cn.divide(dryGAmma_zCoord,(rho*gg))  # K/Pa
+    dryGAmma_pCoord = (dryGAmma_zCoord)/(rho*gg)  # K/Pa
 
     return dryGAmma_pCoord
 
@@ -120,19 +99,10 @@ def moistAdiabatFactor(temp,pres):
     Clausius-Clapeyron formula and the hydrostatic equation. Ignores conversion
     to ice and graupel and condensate loading."""
 
-    if temp.__class__ == np.ndarray:
-        cn = np # stands for 'class name'
-    elif temp.__class__ == da.core.Array:
-        cn = da
-    else:
-        print("Unvalid data type:", type(temp))
-        return
-
+    cn = getArrayType(temp)
     inshape = temp.shape
     qvstar = saturationSpecificHumidity(temp,pres)
-
-    coef_m = cn.divide(1+cn.divide(L_v*qvstar,R_d*temp),
-                       1+cn.divide(L_v**2.*qvstar,c_pd*R_v*cn.power(temp,2.)))
+    coef_m = (1+(L_v*qvstar)/(R_d*temp))/(1+(L_v**2.*qvstar)/(c_pd*R_v*(temp**2.)))
 
     return coef_m
 
@@ -143,18 +113,10 @@ def moistAdiabaticLapseRateSimple(temp,pres,spechum):
     from the conservation of liquid moist static energy. Convert on pressure
     coordinate by assuming hydrostaticity (K/Pa)."""
 
-    if temp.__class__ == np.ndarray:
-        cn = np # stands for 'class name'
-    elif temp.__class__ == da.core.Array:
-        cn = da
-    else:
-        print("Unvalid data type:", type(temp))
-        return
-
+    cn = getArrayType(temp)
     Gamma_d_pCoord = dryAdiabaticLapseRate(temp,pres,spechum)  # K/Pa
     coef_m = moistAdiabatFactor(temp,pres)          # Unitless
-
-    Gamma_m_pCoord = cn.multiply(Gamma_d_pCoord,coef_m) # K/Pa
+    Gamma_m_pCoord = (Gamma_d_pCoord*coef_m) # K/Pa
 
     return Gamma_m_pCoord   
 
@@ -168,25 +130,20 @@ def moistAdiabatSimple(surftemp,pres,spechum,levdim=0):
         - Ts (K, dimensions: [Nt,1,Nlat,Nlon])
         - p (Pa, dimensions: [Nt,Nlev,Nlat,Nlon])
         - q (kg/kg, dimensions: [Nt,Nlev,Nlat,Nlon])
+    Usage with dask:
+        Make sure the vertical coordinate is in dimension 0
+        Make sure the chunks are the same
+        Make sure there is only one chunk in the vertical
+        Execute da.map_blocks(moistAdiabatSimple,Ts,p,q)
     Careful:
         When using this function with da.map_blocks, make sure the vertical
         coordinate is not subdivided into chunks; otherwise the temperature profile 
         will show zigzags.
         This function works with the vertical coordinate in first dimension. Other
         configurations haven't been tested.
-    Usage with dask:
-        Make sure the vertical coordinate is in dimension 0
-        Make sure the chunks are the same
-        Execute da.map_blocks(moistAdiabatSimple,Ts,p,q)
     """
 
-    if pres.__class__ == np.ndarray:
-        cn = np # stands for 'class name'
-    elif pres.__class__ == da.core.Array:
-        cn = da
-    else:
-        print("Unvalid data type:", type(pres))
-        return
+    cn = getArrayType(pres)
 
     # sh_shape = spechum.shape
     # ts_shape = surftemp.shape

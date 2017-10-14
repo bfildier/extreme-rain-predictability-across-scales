@@ -61,14 +61,7 @@ def computeTimeHorizontalMean(values,ind,is_3D,da_compute=da_compute_default):
 		- Computes the mean over points corresponding to a given percentile bin
 		of some distribution."""
 
-	if values.__class__ == np.ndarray:
-		cn = np # stands for 'class name'
-	elif values.__class__ == da.core.Array:
-		cn = da
-	else:
-		print("Unvalid data type:", type(values))
-		return
-
+	cn = getArrayType(values)
 	vshape = values.shape
 	ndims = len(vshape)
 	ishape = ind.shape
