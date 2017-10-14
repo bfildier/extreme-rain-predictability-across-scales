@@ -11,7 +11,7 @@ from importingData import *
 if __name__ == "__main__":
 
 	print("--Test getInputDirectories")
-	dataroot = '/Users/bfildier/Data'
+	# dataroot = '/Users/bfildier/Data'
 	compset = 'FSPCAMm_AMIP'
 	experiment = 'piControl'
 	dates = ('1850050100000','1850050200000')
@@ -49,7 +49,7 @@ if __name__ == "__main__":
 	print("--Test getValues")
 	for varid in 'PRECT','I50':
 		print("* With %s:"%varid)
-		values = getValues(varid,dataroot,compset,subset='tropics',\
+		values = getValues(varid,compset,subset='tropics',\
 			experiment=experiment,time_stride='1hr',time_type='A',dates=dates)
 		if values is not None:
 			print("values.shape =",values.shape)
