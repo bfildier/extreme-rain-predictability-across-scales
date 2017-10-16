@@ -1,7 +1,6 @@
 """Module environmentAndDirectories
 
-Contains functions to define directory structure and related history files 
-settings.
+Contains functions to define directory structure, paths and other settings.
 """
 
 #---- modules ----#
@@ -9,7 +8,7 @@ settings.
 import socket, os
 
 #---- Own functions ----#
-currentpath = os.getcwd()
+# currentpath = os.path.dirname(os.path.realpath(__file__))
 ## Host name
 hostname = socket.gethostname()
 if hostname == "jollyjumper":
@@ -46,17 +45,5 @@ def getInputDirectories(compset,experiment):
 
 	return inputdir, inputdir_processed_day, inputdir_processed_1hr,\
 		inputdir_results, inputdir_fx
-
-## Get time stride, type (A or I) and number or time slices for CAM history files
-def getCAMHistoryFilesSettings():
-
-	"""Returns a dict where keys are file handles h0, h1, ... and values are
-	tuples (time stride, average type, number of time slices per file)."""
-
-	historyFilesSettings = dict()
-	historyFilesSettings['h0'] = ('1hr','A',1)
-	historyFilesSettings['h1'] = ('day','A',1)
-
-	return historyFilesSettings
 
 	

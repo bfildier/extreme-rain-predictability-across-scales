@@ -19,9 +19,10 @@ from datetime import date, time, datetime, timedelta
 from netCDF4 import Dataset
 
 ## Own functions
-currentpath = os.path.dirname(os.path.realpath(__file__))
+# currentpath = os.path.dirname(os.path.realpath(__file__))
 
 from environmentAndDirectories import *
+from CAMsettings import *
 
 #---- Functions ----#
 
@@ -75,6 +76,11 @@ def getProcessedValues(varid,inputdir,inputfiles=None,dates=None,concataxis=0,da
 
     # print("enter getProcessedValues")
 
+    if daskarray:
+        cn = da
+    else:
+        cn = np    
+    
     if inputfiles is None:
         inputfiles = getProcessedFiles(varid,inputdir,inputfiles,dates)
     if len(inputfiles) == 0:
@@ -87,10 +93,10 @@ def getProcessedValues(varid,inputdir,inputfiles=None,dates=None,concataxis=0,da
         values_list.append(fh.variables[varid][:])
         fh.close()
     if len(values_list) == 0:
-    	print("%s not found in processed files"%varid)
-    	return None
+        print("%s not found in processed files"%varid)
+        return None
     print("%s found in processed files"%varid)
-    values_array = np.concatenate(values_list,axis=concataxis)
+    values_array = cn.concatenate(values_list,axis=concataxis)
     return values_array
 
 def getSimulationFiles(varid,inputdir,inputfiles=None,dates=None,handle=None):
@@ -134,37 +140,51 @@ def getSimulationFiles(varid,inputdir,inputfiles=None,dates=None,handle=None):
 	return inputfiles
 
 ## Get values from original hourly output
-def getSimulationValues(varid,inputdir,inputfiles=None,dates=None,subset='tropics',handle=None,daskarray=True):
+def getSimulationValues(varid,inputdir,dt='day',inputfiles=None,dates=None,subset='tropics',handle=None,daskarray=True):
 
 	"""Get $varid values from CAM/SPCAM history files in $inputdir.
 	dates is a pair of dates in format YYYYmmddHHMM
-	(YYYYmmddHHMM <= accepted files < YYYYmmddHHMM)"""
+	(YYYYmmddHHMM <= accepted files < YYYYmmddHHMM).
+	Assumes the first dimension is time."""
 	
 	if daskarray:
 		cn = da
 	else:
 		cn = np    
 
-	## Find valid inputfiles
+	# Find valid inputfiles
 	if inputfiles is None:
 		inputfiles = getSimulationFiles(varid,inputdir,inputfiles,dates,handle)
-	## Extract data
 
-	# Abort if no inputfile match date range
+	# Abort if no inputfile matches date range
 	if len(inputfiles) == 0:
 		return
+    
+	# Check time resolution compatibility
+	if handle is None:
+		handle = handleCAMHistoryFiles(iputfiles[0])
+	settings = getCAMHistoryFilesSettings()
+	if not isValidHandle(handle,dt,settings):
+		return 
 
+	# Import data
+	dt_ratio = timeResolutionRatio(dt,settings[handle][0])
+	vals_within_dt = []
 	values_list = []
 	for file in inputfiles:
 		fh = Dataset(file,'r')
 		if varid in fh.variables.keys():
-			values_list.append(fh.variables[varid][:])
-	fh.close()
+			vals_within_dt.append(fh.variables[varid][:])
+		if len(vals_within_dt) == dt_ratio:
+			values_list.append(np.mean(np.concatenate(vals_within_dt,axis=0),axis=0))
+			vals_within_dt = []
+		fh.close()
 
 	# Abort if no inputfile contains varid
 	if len(values_list) == 0:
 		print("%s not found in history files"%varid)
 		return 
+    
 	# If found
 	print("%s found in history files"%varid)
 	print("Importing %s\n  from\n  %s\n  to\n  %s"%(varid,inputfiles[0],inputfiles[-1]))
@@ -211,7 +231,7 @@ def getValues(varid,compset,subset,experiment,time_stride,time_type='A',dates=No
 	inputdir, inputdir_processed_day, inputdir_processed_1hr, inputdir_results,\
 	 inputdir_fx = getInputDirectories(compset,experiment)
 	# Try history files in case this is an original varid
-	values = getSimulationValues(varid,inputdir,None,dates,subset,handle,daskarray=daskarray)
+	values = getSimulationValues(varid,inputdir,time_stride,None,dates,subset,handle,daskarray=daskarray)
 	if values is not None:
 		return values
 
