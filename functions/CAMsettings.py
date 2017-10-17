@@ -83,3 +83,16 @@ def isValidHandle(h,dt_target,settings):
     dt_ratio = timeResolutionRatio(dt_target,dt_h)
 
     return dt_ratio is not None
+
+# Load history files settings and pick corresponding input directory/historyfile index
+def fileHandleForSettings(time_stride,time_type):
+    settings = getCAMHistoryFilesSettings()
+    handle = None
+    for k in settings.keys():
+        v = settings[k]
+        if v[0] == time_stride and v[1] == time_type:
+            handle = k
+            pass
+    if handle is None:
+        print("No history file has the correct time_stride or averaging type.")
+    return handle

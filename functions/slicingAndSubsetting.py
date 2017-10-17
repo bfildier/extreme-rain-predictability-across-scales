@@ -10,6 +10,7 @@ import sys,os
 from math import *
 import numpy as np
 import dask.array as da
+from netCDF4 import Dataset
 
 #---- Own functions ----#
 currentpath = os.path.dirname(os.path.realpath(__file__))
@@ -100,3 +101,28 @@ def computeMean(values,subset=None):
 
 	"""-- Yet to implement. See functions/statistics.py in SPCAM Extremes.--"""
 
+
+## Reduce domain to prescribed area
+def reduceDomain(values,subsetname,examplefile,varid):
+
+	"""Extracts a subset of points while retaining the object shape. Typically,
+	take a slice in a given dimension.
+		- values can be numpy.ndarray or dask.array. 
+		- examplefile is used to get the size and index of the dimension of
+		interest.
+		-subsetname indicates which points to extract (e.g. 'tropics')"""
+
+	cn = getArrayType(values)
+
+	if subsetname is not 'global':
+		fh = Dataset(examplefile,'r')
+		dims = fh.variables[varid].dimensions
+		ndims = len(dims)
+		fh.close()
+	if subsetname == 'tropics':
+		indlat = np.argmax(np.array(dims) == 'lat')
+		nlat = values.shape[indlat]
+		lat_slice = slice(nlat//3,2*(nlat//3))
+		values = cn.take(values,lat_slice,axis=indlat)
+
+	return values

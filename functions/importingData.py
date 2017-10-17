@@ -23,6 +23,7 @@ from netCDF4 import Dataset
 
 from environmentAndDirectories import *
 from CAMsettings import *
+from slicingAndSubsetting import *
 
 #---- Functions ----#
 
@@ -76,10 +77,7 @@ def getProcessedValues(varid,inputdir,inputfiles=None,dates=None,concataxis=0,da
 
     # print("enter getProcessedValues")
 
-    if daskarray:
-        cn = da
-    else:
-        cn = np    
+    cn = [da if daskarray else np]
     
     if inputfiles is None:
         inputfiles = getProcessedFiles(varid,inputdir,inputfiles,dates)
@@ -114,6 +112,7 @@ def getSimulationFiles(varid,inputdir,inputfiles=None,dates=None,handle=None):
 	pattern = "*.????-??-??-?????.nc"
 	if handle is not None:
 		pattern = "*.%s%s"%(handle,pattern[1:])
+		# print("new pattern:",pattern)
 	# Search inputfiles
 	if inputfiles is None:
 		inputfiles = []
@@ -121,7 +120,6 @@ def getSimulationFiles(varid,inputdir,inputfiles=None,dates=None,handle=None):
 			dt_bnds = [datetime(int(d[:4]),int(d[4:6]),int(d[6:8]),int(d[8:10]),int(d[10:12]))\
 			for d in dates]
 		for file in glob.glob(os.path.join(inputdir,pattern)):
-			filename = os.path.basename(file)
 			if dates is not None: 
 				dt_info = filename.split('.')[-2].replace('-','')
 				dt = datetime(int(dt_info[:4]),int(dt_info[4:6]),int(dt_info[6:8]))+\
@@ -131,16 +129,18 @@ def getSimulationFiles(varid,inputdir,inputfiles=None,dates=None,handle=None):
 			inputfiles.append(file)
 	else:
 		## Append dirname to all files if necessary
-		inputfiles = [os.path.join(inputdir,f) if inputdir not in f else f for f in inputfiles]
+		inputfiles = [os.path.join(inputdir,f) for f in inputfiles]
 	
 	inputfiles.sort()
 	if len(inputfiles) == 0:
+		if dates is None:
+			dates=['undefined']
 		print("No simulation history file found for dates %s in %s."%\
-			(string.join(dates,'-'),inputdir))
+			('-'.join(dates),inputdir))
 	return inputfiles
 
 ## Get values from original hourly output
-def getSimulationValues(varid,inputdir,dt='day',inputfiles=None,dates=None,subset='tropics',handle=None,daskarray=True):
+def getSimulationValues(varid,inputdir,dt='day',inputfiles=None,dates=None,subsetname='tropics',handle=None,daskarray=True):
 
 	"""Get $varid values from CAM/SPCAM history files in $inputdir.
 	dates is a pair of dates in format YYYYmmddHHMM
@@ -155,14 +155,13 @@ def getSimulationValues(varid,inputdir,dt='day',inputfiles=None,dates=None,subse
 	# Find valid inputfiles
 	if inputfiles is None:
 		inputfiles = getSimulationFiles(varid,inputdir,inputfiles,dates,handle)
-
 	# Abort if no inputfile matches date range
 	if len(inputfiles) == 0:
 		return
     
 	# Check time resolution compatibility
 	if handle is None:
-		handle = handleCAMHistoryFiles(iputfiles[0])
+		handle = handleCAMHistoryFiles(inputfiles[0])
 	settings = getCAMHistoryFilesSettings()
 	if not isValidHandle(handle,dt,settings):
 		return 
@@ -176,7 +175,9 @@ def getSimulationValues(varid,inputdir,dt='day',inputfiles=None,dates=None,subse
 		if varid in fh.variables.keys():
 			vals_within_dt.append(fh.variables[varid][:])
 		if len(vals_within_dt) == dt_ratio:
-			values_list.append(np.mean(np.concatenate(vals_within_dt,axis=0),axis=0))
+			values_list.append(cn.mean(cn.concatenate(vals_within_dt,axis=0),
+									   axis=0,
+									   keepdims=True))
 			vals_within_dt = []
 		fh.close()
 
@@ -187,26 +188,15 @@ def getSimulationValues(varid,inputdir,dt='day',inputfiles=None,dates=None,subse
     
 	# If found
 	print("%s found in history files"%varid)
-	print("Importing %s\n  from\n  %s\n  to\n  %s"%(varid,inputfiles[0],inputfiles[-1]))
+	print("Importing %s from %d files\n  from\n  %s\n  to\n  %s"%
+		(varid,len(inputfiles),inputfiles[0],inputfiles[-1]))
 	values = cn.concatenate(values_list,axis=0)
-	print(values.shape)
-	## Reduce domain
-	if subset is not 'global':
-		fh = Dataset(inputfiles[0],'r')
-		dims = fh.variables[varid].dimensions
-		ndims = len(dims)
-		fh.close()
-	if subset == 'tropics':
-		indlat = np.argmax(np.array(dims) == 'lat')
-		nlat = values.shape[indlat]
-		lat_slice = slice(nlat//3,2*(nlat//3))
-		lat_slice_multidim = [slice(None)]*(indlat)+[lat_slice]+[slice(None)]*(ndims-indlat-1)
-		print(lat_slice_multidim)
-		values = values[lat_slice_multidim]
+	values = reduceDomain(values,subsetname,inputfiles[0],varid)
+
 	return values
 
 # Main function to extract data values from processed files or history files
-def getValues(varid,compset,subset,experiment,time_stride,time_type='A',dates=None,daskarray=True):
+def getValues(varid,compset,subsetname,experiment,time_stride,time_type='A',dates=None,handle=None,daskarray=True):
 
 	"""Wrapper around the other 'get*Values' functions that loads the data 
 	for a given time resolution (stride), type and date range, for a compset
@@ -216,22 +206,12 @@ def getValues(varid,compset,subset,experiment,time_stride,time_type='A',dates=No
 
 	# print("enter getValues")
 
-	# Load history files settings and pick corresponding input directory/historyfile index
-	settings = getCAMHistoryFilesSettings()
-	handle = None
-	for k in settings.keys():
-		v = settings[k]
-		if v[0] == time_stride and v[1] == time_type:
-			handle = k
-			pass
-	if handle is None:
-		print("No history file has the correct time_stride or averaging type.")
-		print("Rewrite function to average to various resolutions.")
 	# Load inputdirectories
 	inputdir, inputdir_processed_day, inputdir_processed_1hr, inputdir_results,\
 	 inputdir_fx = getInputDirectories(compset,experiment)
+	
 	# Try history files in case this is an original varid
-	values = getSimulationValues(varid,inputdir,time_stride,None,dates,subset,handle,daskarray=daskarray)
+	values = getSimulationValues(varid,inputdir,time_stride,None,dates,subsetname,handle,daskarray=daskarray)
 	if values is not None:
 		return values
 
