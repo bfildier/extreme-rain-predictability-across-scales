@@ -122,7 +122,7 @@ def reduceDomain(values,subsetname,examplefile,varid):
 	if subsetname == 'tropics':
 		indlat = np.argmax(np.array(dims) == 'lat')
 		nlat = values.shape[indlat]
-		lat_slice = slice(nlat//3,2*(nlat//3))
+		lat_slice = list(range(nlat//3,2*(nlat//3)))
 		values = cn.take(values,lat_slice,axis=indlat)
 
 	return values
@@ -141,6 +141,14 @@ def isobaricSurface(var,pres,p_ref=500,levdim=1):
 	dimorder = list(range(len(pres.shape)))
 	newdimorder = dimorder[:levdim]+dimorder[levdim+1:]+[dimorder[levdim]]
 	pres_perm = cn.transpose(pres,newdimorder)
+	# Define new shape
+	var_ravel = cn.ravel(cn.transpose(var,newdimorder))
+	newshape = list(pres.shape)
+	del newshape[levdim]
+	# Define new chunks
+	newchunks = None
+	if cn == da:
+		newchunks = pres.chunks[:levdim]+pres.chunks[levdim+1:]
 	# Ravel pressure coordinate
 	pres_ravel = cn.ravel(pres_perm)
 	# Extract indices below (i.e. larger than) p_ref
@@ -148,37 +156,44 @@ def isobaricSurface(var,pres,p_ref=500,levdim=1):
 	# Ravelled indices just below and just above reference pressure
 	i_diff = cn.diff(i_LT)
 	i_diff[i_diff == -1] = 0
-	# i_below = cn.reshape(cn.hstack((np.zeros((1,),dtype=int),i_diff)),pres_perm.shape)
-	# i_above = cn.reshape(cn.hstack((i_diff,np.zeros((1,),dtype=int))),pres_perm.shape)
 	i_below = cn.hstack((np.zeros((1,),dtype=int),i_diff))
 	i_above = cn.hstack((i_diff,np.zeros((1,),dtype=int)))
 	i_below,i_above = i_below.astype(bool,copy=False),i_above.astype(bool,copy=False)
-	print(np.isnan(i_below).sum())
-	print(i_below.size,i_below.sum())
 	# Compute fraction coefficient to interpolate values
-	if cn == da:
-		pres_below = da.compress(i_below.compute(),pres_ravel)
-		pres_above = da.compress(i_above.compute(),pres_ravel)
-	elif cn == np:
-		pres_below = pres_ravel[i_below]
-		pres_above = pres_ravel[i_above]
+	i_valid = np.mean((pres_perm >= p_ref),axis=-1,dtype=bool).flatten()
+	
+	def getVals(vals_ravel,i_valid,stencil,newshape,newchunks=None):
+		values = np.nan*np.ones(i_valid.shape)
+		values[i_valid] = vals_ravel[stencil]
+		if cn == da:
+			return da.from_array(np.reshape(values,newshape),chunks=newchunks)
+		elif cn == np:
+			return np.reshape(values,newshape)
+
+	pres_below = getVals(pres_ravel,i_valid,i_below,newshape,newchunks)
+	pres_above = getVals(pres_ravel,i_valid,i_above,newshape,newchunks)
+
+	# if cn == da:
+	# 	pres_below = da.compress(i_below.compute(),pres_ravel)
+	# 	pres_above = da.compress(i_above.compute(),pres_ravel)
+	# elif cn == np:
+	# 	pres_below = getVals(pres_ravel,i_valid,i_below,newshape)
+	# 	pres_above = getVals(pres_ravel,i_valid,i_above,newshape)
+
+
 	f = (p_ref-pres_above)/(pres_below-pres_above)
-	print(f.size)
 	# Interpolate variable onto p_ref surface
-	var_ravel = cn.ravel(cn.transpose(var,newdimorder))
-	newshape = list(pres.shape)
-	newshape[levdim] = 1
-	if cn == da:
-		var_pref = cn.reshape(f*da.compress(i_below.compute(),var_ravel) + 
-							  (1-f)*da.compress(i_above.compute(),var_ravel),newshape)
-	elif cn == np:
-		var_pref = cn.reshape(f*var_ravel[i_below] + (1-f)*var_ravel[i_above],newshape)
+	
+	# if cn == da:
+	# 	var_pref = cn.reshape(f*da.compress(i_below.compute(),var_ravel) + 
+	# 						  (1-f)*da.compress(i_above.compute(),var_ravel),newshape)
+	# elif cn == np:
+	# 	# var_pref = cn.reshape(f*var_ravel[i_below] + (1-f)*var_ravel[i_above],newshape)
+	
+	var_pref = f*getVals(var_ravel,i_valid,i_below,newshape,newchunks) +\
+				   (1-f)*getVals(var_ravel,i_valid,i_above,newshape,newchunks)
 
 	return var_pref
-
-
-		
-
 
 
 
