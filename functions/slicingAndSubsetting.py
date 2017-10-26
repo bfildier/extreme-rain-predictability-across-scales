@@ -126,3 +126,65 @@ def reduceDomain(values,subsetname,examplefile,varid):
 		values = cn.take(values,lat_slice,axis=indlat)
 
 	return values
+
+## Get isobaric surfaces
+def isobaricSurface(var,pres,p_ref=500,levdim=1):
+	
+	"""From a 4D variables, extract a 3D (time-lat-lon) surface at constant 
+	pressure p_ref (in hPa).
+	Assumes values of p are decreasing along levdim."""
+
+	cn = getArrayType(var)
+
+	p_ref *= 100	# in Pa
+	# Put vertical dimension in last position
+	dimorder = list(range(len(pres.shape)))
+	newdimorder = dimorder[:levdim]+dimorder[levdim+1:]+[dimorder[levdim]]
+	pres_perm = cn.transpose(pres,newdimorder)
+	# Ravel pressure coordinate
+	pres_ravel = cn.ravel(pres_perm)
+	# Extract indices below (i.e. larger than) p_ref
+	i_LT = (pres_ravel >= p_ref).astype(int)
+	# Ravelled indices just below and just above reference pressure
+	i_diff = cn.diff(i_LT)
+	i_diff[i_diff == -1] = 0
+	# i_below = cn.reshape(cn.hstack((np.zeros((1,),dtype=int),i_diff)),pres_perm.shape)
+	# i_above = cn.reshape(cn.hstack((i_diff,np.zeros((1,),dtype=int))),pres_perm.shape)
+	i_below = cn.hstack((np.zeros((1,),dtype=int),i_diff))
+	i_above = cn.hstack((i_diff,np.zeros((1,),dtype=int)))
+	i_below,i_above = i_below.astype(bool,copy=False),i_above.astype(bool,copy=False)
+	print(np.isnan(i_below).sum())
+	print(i_below.size,i_below.sum())
+	# Compute fraction coefficient to interpolate values
+	if cn == da:
+		pres_below = da.compress(i_below.compute(),pres_ravel)
+		pres_above = da.compress(i_above.compute(),pres_ravel)
+	elif cn == np:
+		pres_below = pres_ravel[i_below]
+		pres_above = pres_ravel[i_above]
+	f = (p_ref-pres_above)/(pres_below-pres_above)
+	print(f.size)
+	# Interpolate variable onto p_ref surface
+	var_ravel = cn.ravel(cn.transpose(var,newdimorder))
+	newshape = list(pres.shape)
+	newshape[levdim] = 1
+	if cn == da:
+		var_pref = cn.reshape(f*da.compress(i_below.compute(),var_ravel) + 
+							  (1-f)*da.compress(i_above.compute(),var_ravel),newshape)
+	elif cn == np:
+		var_pref = cn.reshape(f*var_ravel[i_below] + (1-f)*var_ravel[i_above],newshape)
+
+	return var_pref
+
+
+		
+
+
+
+
+
+
+
+
+
+

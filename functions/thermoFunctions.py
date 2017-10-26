@@ -74,7 +74,6 @@ def saturationSpecificHumidity(temp,pres):
     """Convert from estimate of saturation vapor pressure to saturation specific
     humidity using the approximate equation qvsat ~ epsilon"""
 
-    cn = getArrayType(temp)
     e_sat = saturationVaporPressure(temp)
     qvstar = (e_sat/R_v)/(pres/R_d)
 

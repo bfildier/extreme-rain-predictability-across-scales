@@ -37,6 +37,7 @@ cd ${REMOTE_SCRIPT_DIR}
 sed -i "s/#SBATCH --partition=.*/#SBATCH --partition=${partition}/" ${SCRIPT_NAME}
 sed -i "s/#SBATCH --nodes=.*/#SBATCH --nodes=${nodes}/" ${SCRIPT_NAME}
 sed -i "s/#SBATCH --time=.*/#SBATCH --time=${time}/" ${SCRIPT_NAME}
+sed -i '' "s/port=.*/port=${remote_port}/" ${SCRIPT_NAME}
 # Start notebook
 echo "cd ${REMOTE_WORKDIR}"
 cd ${REMOTE_WORKDIR}
