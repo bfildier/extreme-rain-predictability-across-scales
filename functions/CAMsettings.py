@@ -29,7 +29,7 @@ def inHours(resolution):
     """Returns the number of hours for a given time stride/resolution"""
     
     resolutions = ['day','1d','3hr','1hr']
-    nhours = [24,24,3,1]
+    nhours = [6,24,3,1]
     conversion = dict(zip(resolutions,nhours))
     
     if resolution not in conversion.keys():

@@ -13,9 +13,10 @@ not, import it from the processed variables.
 import glob
 import sys,os
 import string
+import operator
 import numpy as np
 import dask.array as da
-from datetime import date, time, datetime, timedelta
+from datetime import date, datetime, timedelta
 from netCDF4 import Dataset
 
 ## Own functions
@@ -222,7 +223,7 @@ def getValues(varid,compset,subsetname,experiment,time_stride,time_type='A',date
 	return values
 
 ## Obtains the 'computeP' function for a given simulation
-def getPressureCoordinateFunction(input_lev_file):
+def getPressureCoordinateFunction(input_lev_file,levdim=1):
 
 	"""Reads in file lev_fx_* with the required information (hyam, hybm, P0).
 	Returns a function that derives the pressure coordinate values on sigma levels
@@ -234,10 +235,16 @@ def getPressureCoordinateFunction(input_lev_file):
 	P0 = fh.variables['P0'][:]
 	fh.close()
 	def computeP(ps):
-		if type(ps).__module__ == np.__name__:
+		if ps.__class__ == np.ndarray:
 			pres = np.add(np.multiply.outer(P0*np.ones(ps.shape),hyam),\
 				np.multiply.outer(ps,hybm)) # In hPa,mbar
-			return pres
+			return np.moveaxis(pres,-1,levdim)
+		elif ps.__class__ == da.core.Array:
+			chunks = ps.chunks
+			newchunks = chunks[:levdim]+((hyam.size,),)+chunks[levdim:]
+			# pres = da.map_blocks(computeP,ps,dtype=float).compute() ## crashes
+			pres = computeP(ps.compute())
+			return(da.from_array(pres,chunks=newchunks))
 		else:
 			return P0*hyam+ps*hybm	# In hPa,mbar
 	return computeP

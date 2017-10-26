@@ -5,6 +5,8 @@ import time
 currentpath = os.path.dirname(os.path.realpath(__file__))
 sys.path.insert(0,os.path.join(os.path.dirname(currentpath),'functions'))
 
+from environmentAndDirectories import *
+from importingData import *
 from slicingAndSubsetting import *
 
 if __name__ == "__main__":
@@ -54,5 +56,39 @@ if __name__ == "__main__":
 	print(x_da_mean.__class__)
 	print("time elapsed:", end-start)
 	print()
+
+	print("-- Test isobaricSurface --")
+	compset = 'FAMIPC5'
+	experiment = 'piControl'
+	subset = 'tropics'
+	time_stride = 'day'
+	inputdir, inputdir_processed_day, inputdir_processed_1hr, inputdir_results, inputdir_fx = \
+    	getInputDirectories(compset,experiment)
+	input_lev_file = os.path.join(inputdir_fx,'lev_fx_CESM111-SPCAM20_allExperiments_r0i0p0.nc')
+	computeP = getPressureCoordinateFunction(input_lev_file)
+	ps_varid = 'PS'
+	p_ref = 500
+	levdim = 1
+	ps = getValues(ps_varid,compset,subset,experiment,time_stride)
+	pres = computeP(ps)
+	print("- Interpolation of pressure variable on 500hPa's surface")
+	print("*With numpy arrays")
+	start = time.time()
+	p_500 = isobaricSurface(pres.compute(),pres.compute(),p_ref=p_ref,levdim=levdim)
+	print("Error :",np.absolute(p_500-50000).max())
+	print("shape:",p_500.shape)
+	end = time.time()
+	print("time elapsed:", end-start)
+	print()
+	print("*With dask arrays")
+	start = time.time()
+	p_500 = isobaricSurface(pres,pres,p_ref=p_ref,levdim=levdim)
+	print("Error :",np.absolute(p_500-50000).max())
+	print("shape:",p_500.shape)
+	end = time.time()
+	print("time elapsed:", end-start)
+	print()	
+	
+
 
 	sys.exit(0)
