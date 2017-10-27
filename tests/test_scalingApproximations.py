@@ -33,6 +33,9 @@ if __name__ == "__main__":
 		levdim=levdim).compute(),"kg/m2")
 	print("Pressure-weighted pressure:", verticalPressureIntegral(pres_2D_da,
 		pres_2D_da,levdim=levdim).compute(),"kg2/m3/s2")
+	print("Pressure-weighted pressure^2, args as list:",
+		verticalPressureIntegral(pres_2D_da,
+		[pres_2D_da,pres_2D_da],levdim=levdim).compute(),"kg3/m4/s4")
 	print()
 	print("- 2D, lev first -")
 	x = np.linspace(0,100,3)
@@ -46,6 +49,9 @@ if __name__ == "__main__":
 		levdim=levdim).compute(),"kg/m2")
 	print("Pressure-weighted pressure:", verticalPressureIntegral(pres_2D_da,
 		pres_2D_da,levdim=levdim).compute(),"kg2/m3/s2")
+	print("Pressure-weighted pressure^2, args as list:",
+		verticalPressureIntegral(pres_2D_da,
+		[pres_2D_da,pres_2D_da],levdim=levdim).compute(),"kg3/m4/s4")
 	print()
 
 	

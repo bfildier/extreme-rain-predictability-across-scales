@@ -51,7 +51,7 @@ def singleLevelScalingFromOmegaQ(spechum,omega,efficiency=None):
 
 
 ## Compute vertical integral on pressure coordinates
-def verticalPressureIntegral(pres,values=None,levdim=0):
+def verticalPressureIntegral(pres,values=None,dvdp=None,levdim=0):
 
     """Arguments: np.ndarray's or dask.array's with identical dimensions
     Returns: @f[ \int x \frac{dp}{g}@f] from bottom to top of atmosphere.
@@ -63,9 +63,33 @@ def verticalPressureIntegral(pres,values=None,levdim=0):
     if values is None:  # If values not given, compute weight of vertical 
                         # column; normalizing factor
         return cn.nansum(dp/gg,axis=levdim)
-    else:   # Compute integral
+    elif values.__class__ == da.core.Array or values.__class__ == np.ndarray:
         nlev = pres.shape[levdim]
         val_mids = np.take(values,range(nlev-1),axis=levdim) \
         - np.take(values,range(1,nlev),axis=levdim)
-        return cn.nansum(val_mids*dp/gg,axis=levdim)
+        val_prod = dp*val_mids
+    elif values.__class__ == list:
+        nlev = pres.shape[levdim]
+        val_prod = dp.copy()
+        for i in range(len(values)):
+            val_mids = np.take(values[i],range(nlev-1),axis=levdim) \
+            - np.take(values[i],range(1,nlev),axis=levdim)
+            val_prod = val_prod*val_mids
+    
+    dvdp_prod = 1
+    if dvdp is not None:
+        if dvdp.__class__ == da.core.Array or dvdp.__class__ == np.ndarray:
+            dvdp_prod = dvdp
+        elif dvdp.__class__ == list:
+            for i in range(len(dvdp)):
+                dvdp_prod = dvdp_prod*dvdp[i]
+
+    return cn.nansum(val_prod*dvdp_prod/gg,axis=levdim)
+
+## Compute O'Gorman & Schneider's scaling
+
+
+
+
+
 
