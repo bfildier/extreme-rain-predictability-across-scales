@@ -78,7 +78,7 @@ def getProcessedValues(varid,inputdir,inputfiles=None,dates=None,concataxis=0,da
 
     # print("enter getProcessedValues")
 
-    cn = [da if daskarray else np]
+    cn = da if daskarray else np
     
     if inputfiles is None:
         inputfiles = getProcessedFiles(varid,inputdir,inputfiles,dates)
@@ -148,10 +148,7 @@ def getSimulationValues(varid,inputdir,dt='day',inputfiles=None,dates=None,subse
 	(YYYYmmddHHMM <= accepted files < YYYYmmddHHMM).
 	Assumes the first dimension is time."""
 	
-	if daskarray:
-		cn = da
-	else:
-		cn = np    
+	cn = da if daskarray else np
 
 	# Find valid inputfiles
 	if inputfiles is None:
@@ -166,15 +163,19 @@ def getSimulationValues(varid,inputdir,dt='day',inputfiles=None,dates=None,subse
 	settings = getCAMHistoryFilesSettings()
 	if not isValidHandle(handle,dt,settings):
 		return 
-
+    
 	# Import data
 	dt_ratio = timeResolutionRatio(dt,settings[handle][0])
+    
+	print(dt_ratio)
+    
 	vals_within_dt = []
 	values_list = []
 	for file in inputfiles:
 		fh = Dataset(file,'r')
 		if varid in fh.variables.keys():
 			vals_within_dt.append(fh.variables[varid][:])
+			print(file)
 		if len(vals_within_dt) == dt_ratio:
 			values_list.append(cn.mean(cn.concatenate(vals_within_dt,axis=0),
 									   axis=0,
