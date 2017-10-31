@@ -15,6 +15,8 @@ import dask.array as da
 from thermoConstants import *
 from daskOptions import *
 
+#---- Functions ----#
+
 ## Air density from values of T, p and q
 def airDensity(temp,pres,shum):
 
@@ -38,9 +40,10 @@ def saturationVaporPressure(temp):
     """Argument: Temperature (K) as a numpy.ndarray or dask.array
     Returns: saturation vapor pressure (Pa) in the same format."""
 
+    T_0 = 273.15
+    
     def qvstar_numpy(temp):
 
-        T_0 = 273.15
         whereAreNans = np.isnan(temp)
         temp_wo_Nans = temp.copy()
         temp_wo_Nans[whereAreNans] = 0.
@@ -49,21 +52,26 @@ def saturationVaporPressure(temp):
         e_sat[whereAreNans] = np.nan
         # T > 0C
         overliquid = (temp_wo_Nans > T_0)
-        e_sat_overliquid = 0.61121*np.exp(np.multiply(18.678-(temp-T_0)/234.5,
+        e_sat_overliquid = 611.21*np.exp(np.multiply(18.678-(temp-T_0)/234.5,
                                                       np.divide((temp-T_0),257.14+(temp-T_0))))
         e_sat[overliquid] = e_sat_overliquid[overliquid]
         # T < 0C 
         overice = (temp_wo_Nans < T_0)
-        e_sat_overice = 0.61115*np.exp(np.multiply(23.036-(temp-T_0)/333.7,
+        e_sat_overice = 611.15*np.exp(np.multiply(23.036-(temp-T_0)/333.7,
                                                    np.divide((temp-T_0),279.82+(temp-T_0))))
         e_sat[overice] = e_sat_overice[overice]
 
-        return e_sat*1000       # in Pa
+        return e_sat       # in Pa
 
     if temp.__class__ == np.ndarray:
         return qvstar_numpy(temp)
     elif temp.__class__ == da.core.Array:
         return temp.map_blocks(qvstar_numpy)
+    elif temp.__class__ in [np.float32,float]:
+        if temp > T_0:
+            return 611.21*np.exp((18.678-(temp-T_0)/234.5)*(temp-T_0)/(257.14+(temp-T_0)))
+        else:
+            return 611.15*np.exp((23.036-(temp-T_0)/333.7)*(temp-T_0)/(279.82+(temp-T_0)))
     else:
         print("Unvalid data type:", type(temp))
         return

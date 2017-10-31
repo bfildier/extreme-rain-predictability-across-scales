@@ -8,6 +8,7 @@ on the x-axis (logarithmic, linear and inverse-logarithmic).
 import sys,os
 from math import *
 import numpy as np
+import numpy.ma as ma
 import dask.array as da
 from scipy.interpolate import lagrange
 
@@ -29,19 +30,24 @@ nlb = 50
 
 ## Percentile ranks regularly spaced on an inverse-logarithmic axis (zoom on 
 ## largest percentiles of the distribution).
-def getInvLogRanks(n_pts,n_pts_per_bin=nppb,n_bins_per_decade=nbpd):
+def getInvLogRanks(n_pts,n_pts_per_bin=nppb,n_bins_per_decade=nbpd,fill_last_decade=False):
 
 	"""Arguments:
 		- n_pts: sample size
 		- n_pts_per_bin: minimum number of data points per bin used to choose the maximum percentile rank
 		- n_bins_per_decade: number of ranks/bins per logarithmic decade
+		- fill_last_decade: True (default is False) if want to plot
+		up to 99.99 or 99.999, not some weird number in the middle of a decade.
 	Returns:
 		- float, 1D numpy.array"""
 
 	# k indexes bins
-	n_decades = log10(n_pts/n_pts_per_bin) 	# Maximum number of decades
-	dk = 1/n_bins_per_decade			 
-	k_max = int(n_decades/dk)*dk 			# Maximum bin index
+	n_decades = log10(n_pts/n_pts_per_bin) 		# Maximum number of decades
+	dk = 1/n_bins_per_decade
+	if fill_last_decade:
+		k_max = ceil(n_decades) 				# Maximum bin index
+	else:
+		k_max = int(n_decades/dk)*dk 			# Maximum bin index
 	scale_invlog = np.arange(0,k_max+dk,dk)
 	ranks_invlog = np.subtract(np.ones(scale_invlog.size),np.power(10,-scale_invlog))*100
 
@@ -218,5 +224,54 @@ def getIndicesOfPercentileRanks(values,rank,ranks,sample=None):
 		- subset (shaped as original data, if statistics is done over a subset)
 	Returns:
 		- 'indices' as a boolean array with same type as input 'values'"""
+
+## Get index of rank in list of ranks
+def indexOfQ(rank,ranks):
+    
+	"""Returns the index of the closest rank in numpy.array ranks"""
+
+	dist_to_rank = np.absolute(np.subtract(ranks,rank*np.ones(ranks.shape)))
+	mindist = dist_to_rank.min()
+	return np.argmax(dist_to_rank == mindist)
+
+## Mask points that do not correspond to percentile Q of Y
+def getStencilForPercentile(rank,ranks,Y):
+
+	"""Returns a numpy.array of bools corresponding to percentile rank.
+	It computes the corresponding rank index and bin."""
+
+	newranks, centers, breaks = computePercentilesAndBinsFromRanks(Y.flatten(),ranks)
+	i_Q = indexOfQ(rank,newranks)
+
+	return np.logical_not(ma.masked_outside(Y,breaks[i_Q-1],breaks[i_Q]).mask)
+
+## Mean of X at locations of percentiles of Y
+def meanXAtYPercentiles(rank,ranks,X,Y):
+
+	if Y.__class__ == np.ndarray:
+		stencil_Q = getStencilForpercentile(Q,ranks,Y)
+		return np.nanmean(X[stencil_Q])
+	elif Y.__class__ == da.core.Array:
+		stencil_Q = da.map_blocks(lambda x: getStencilForPercentile(rank,ranks,x),Y)
+		return da.nanmean(X[stencil_Q]).compute()
+
+## Variance of X at locations of percentiles of Y
+def varXAtYPercentiles(rank,ranks,X,Y):
+
+	if Y.__class__ == np.ndarray:
+		stencil_Q = getStencilForpercentile(Q,ranks,Y)
+		return np.nanvar(X[stencil_Q])
+	elif Y.__class__ == da.core.Array:
+		stencil_Q = da.map_blocks(lambda x: getStencilForPercentile(rank,ranks,x),Y)
+		return da.nanvar(X[stencil_Q]).compute()
+
+## Percentiles of X within percentile bins of Y
+def XPercentilesAtYPercentiles(rank_X,ranks_X,X,Y,ranks_Y):
+    
+    stencil_Q = da.map_blocks(lambda x: getStencilForPercentile(rank_X,ranks_X,x),Y)
+    X_at_rank = X[stencil_Q].compute()
+    if X_at_rank.size == 0:
+        return np.array([np.nan]*len(ranks_Y))
+    return np.percentile(X_at_rank,ranks_Y)
 
 

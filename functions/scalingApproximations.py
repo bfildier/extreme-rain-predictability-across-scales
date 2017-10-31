@@ -33,9 +33,9 @@ def singleLevelScalingFromOmegaT(omega,temp,pres,efficiency=None):
     qvstar = saturationSpecificHumidity(temp,pres)
 
     if efficiency is None:
-        return omega*qvstar
+        return omega*qvstar/gg
     else:
-        return efficiency*omega*qvstar
+        return efficiency*omega*qvstar/gg
 
 ## Scaling approximation from single-level omega and q
 def singleLevelScalingFromOmegaQ(spechum,omega,efficiency=None):
@@ -45,9 +45,9 @@ def singleLevelScalingFromOmegaQ(spechum,omega,efficiency=None):
     Computes pointwise omega*q."""
 
     if efficiency is None:
-        return omega*spechum
+        return omega*spechum/gg
     else:
-        return efficiency*omega*spechum
+        return efficiency*omega*spechum/gg
 
 
 ## Compute vertical integral on pressure coordinates
