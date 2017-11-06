@@ -213,17 +213,17 @@ def compute2dDensities(sample1,sample2,mode1='linear',mode2='linear',\
 	Returns:
 		- ranks1, centers1, breaks1, ranks2, centers2, breaks2, densities2D"""
 
-## Extract an array of indices corresponding to a given percentile rank
-def getIndicesOfPercentileRanks(values,rank,ranks,sample=None):
+# ## Extract an array of indices corresponding to a given percentile rank
+# def getIndicesOfPercentileRanks(values,rank,ranks,sample=None):
 
-	"""-- Yet to implement --
-	Arguments:
-		- values (shaped as original data)
-		- rank
-		- ranks (compulsory argument in first version of the function)
-		- subset (shaped as original data, if statistics is done over a subset)
-	Returns:
-		- 'indices' as a boolean array with same type as input 'values'"""
+# 	"""-- Yet to implement --
+# 	Arguments:
+# 		- values (shaped as original data)
+# 		- rank
+# 		- ranks (compulsory argument in first version of the function)
+# 		- subset (shaped as original data, if statistics is done over a subset)
+# 	Returns:
+# 		- 'indices' as a boolean array with same type as input 'values'"""
 
 ## Get index of rank in list of ranks
 def indexOfQ(rank,ranks):
@@ -235,40 +235,92 @@ def indexOfQ(rank,ranks):
 	return np.argmax(dist_to_rank == mindist)
 
 ## Mask points that do not correspond to percentile Q of Y
-def getStencilForPercentile(rank,ranks,Y):
+def getStencilForPercentile(rank,ranks,percentiles,Y):
 
 	"""Returns a numpy.array of bools corresponding to percentile rank.
 	It computes the corresponding rank index and bin."""
 
-	newranks, centers, breaks = computePercentilesAndBinsFromRanks(Y.flatten(),ranks)
-	i_Q = indexOfQ(rank,newranks)
+	# newranks, centers, breaks = computePercentilesAndBinsFromRanks(Y.flatten(),ranks)
+	# i_Q = indexOfQ(rank,newranks)
+	i_Q = indexOfQ(rank,ranks)
 
-	return np.logical_not(ma.masked_outside(Y,breaks[i_Q-1],breaks[i_Q]).mask)
+	# return np.logical_not(ma.masked_outside(Y,breaks[i_Q-1],breaks[i_Q]).mask)
+	return np.logical_not(ma.masked_outside(Y,percentiles[i_Q-1],percentiles[i_Q]).mask)
 
 ## Mean of X at locations of percentiles of Y
-def meanXAtYPercentiles(rank,ranks,X,Y):
+def meanXAtYPercentiles(rank,ranks,percentiles,X,Y):
 
 	if Y.__class__ == np.ndarray:
-		stencil_Q = getStencilForpercentile(Q,ranks,Y)
+		stencil_Q = getStencilForPercentile(rank,ranks,percentiles,Y)
+		if stencil_Q.sum() == 0:
+			return np.nan
+		else:
+			if np.isnan(X[stencil_Q]).sum() == stencil_Q.sum():
+				return np.nan
 		return np.nanmean(X[stencil_Q])
 	elif Y.__class__ == da.core.Array:
-		stencil_Q = da.map_blocks(lambda x: getStencilForPercentile(rank,ranks,x),Y)
+		stencil_Q = da.map_blocks(lambda x: getStencilForPercentile(rank,
+			ranks,percentiles,x),Y)
+		if stencil_Q.sum() == 0:
+			return np.nan
+		else:
+			if da.isnan(X[stencil_Q]).sum() == stencil_Q.sum():
+				return np.nan
 		return da.nanmean(X[stencil_Q]).compute()
 
 ## Variance of X at locations of percentiles of Y
-def varXAtYPercentiles(rank,ranks,X,Y):
+def varXAtYPercentiles(rank,ranks,percentiles,X,Y):
 
 	if Y.__class__ == np.ndarray:
-		stencil_Q = getStencilForpercentile(Q,ranks,Y)
+		stencil_Q = getStencilForPercentile(rank,ranks,percentiles,Y)
+		if stencil_Q.sum() <= 1:
+			return np.nan
+		else:
+			if np.isnan(X[stencil_Q]).sum() == stencil_Q.sum():
+				return np.nan
 		return np.nanvar(X[stencil_Q])
 	elif Y.__class__ == da.core.Array:
-		stencil_Q = da.map_blocks(lambda x: getStencilForPercentile(rank,ranks,x),Y)
+		stencil_Q = da.map_blocks(lambda x: getStencilForPercentile(rank,
+			ranks,percentiles,x),Y)
+		if stencil_Q.sum() <= 1:
+			return np.nan
+		else:
+			if da.isnan(X[stencil_Q]).sum() == stencil_Q.sum():
+				return np.nan
+		if stencil_Q.sum() <= 10:		
+			print(da.isnan(X[stencil_Q]).sum().compute(),\
+			X[stencil_Q].compute(),
+			stencil_Q.sum().compute(),
+			da.nanvar(X[stencil_Q]).compute())
 		return da.nanvar(X[stencil_Q]).compute()
 
+## Covariance of X1,X2 at locations of percentiles of Y
+def covAtYPercentiles(rank,ranks,percentiles,X1,X2,Y):
+
+	cn = getArrayType(Y)
+
+	def cov(x,y):
+		x_m = cn.nanmean(x)
+		y_m = cn.nanmean(y)
+		return cn.nanmean((x-x_m)*(y-y_m))
+
+	if Y.__class__ == np.ndarray:
+		stencil_Q = getStencilForPercentile(rank,ranks,percentiles,Y)
+		if stencil_Q.sum() <= 1:
+			return np.nan
+		return cov(X1[stencil_Q],X2[stencil_Q])
+	elif Y.__class__ == da.core.Array:
+		stencil_Q = da.map_blocks(lambda x: getStencilForPercentile(rank,
+			ranks,percentiles,x),Y)
+		if stencil_Q.sum() <= 1:
+			return np.nan
+		return cov(X1[stencil_Q],X2[stencil_Q]).compute()
+
 ## Percentiles of X within percentile bins of Y
-def XPercentilesAtYPercentiles(rank_X,ranks_X,X,Y,ranks_Y):
+def XPercentilesAtYPercentiles(rank_X,ranks_X,percentiles_X,X,Y,ranks_Y):
     
-    stencil_Q = da.map_blocks(lambda x: getStencilForPercentile(rank_X,ranks_X,x),Y)
+    stencil_Q = da.map_blocks(lambda x: getStencilForPercentile(rank_X,
+    	ranks_X,percentiles_X,x),Y)
     X_at_rank = X[stencil_Q].compute()
     if X_at_rank.size == 0:
         return np.array([np.nan]*len(ranks_Y))

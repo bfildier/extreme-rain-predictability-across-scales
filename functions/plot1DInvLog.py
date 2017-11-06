@@ -15,42 +15,44 @@ from math import log10,ceil
 
 def transformXaxisIL(ax,x):
     
-    ax.invert_xaxis() # reverse x-axis
+    # reverse x-axis
+    ax.invert_xaxis()
+    # rename ticks
     labels = [item.get_text() for item in ax.get_xticklabels()]
     n = ceil(log10(x.max()))
     N = len(labels)
     for i in range(1,N):
-    #     labels[i] = str(100*(1-10**(-n+i-1)))
         labels[-n+i-4] = str(100*(1-10**(-n+i-1)))
         if -n+i-1 == 0:
             break
     ax.set_xticklabels(labels)
 
-def subplotLogRanksILog(ax,Q_IL,y,col,transformX=False):
+def subplotRanksILog(ax,ranks,y,col=None,ltype=None,alpha=None,transformX=False):
     
     ax.set_xscale('log')
-    ax.set_yscale('log')
 
     # define x-axis
-    x = np.flipud(1./(1-Q_IL[1:-1]/100.))
+    x = np.flipud(1./(1-ranks/100.))
     # plot
     if isinstance(y,list):
         for i in range(len(y)):
-            ax.plot(x,y[i],c=col[i])
+            lt = [ltype[i] if ltype is not None else '-'][0]
+            a = [alpha[i] if alpha is not None else 1][0]
+            c = [col[i] if col is not None else 1][0]
+            ax.plot(x,y[i],c=c,alpha=a,linestyle=lt)
     else:
-        ax.plot(x,y)
+        ax.plot(x,y,c=col,alpha=alpha,linestyle=ltype)
 
     # transform x-axis
     if transformX:
         transformXaxisIL(ax,x)
     
-def subplotYShadingLogRanksILog(ax,Q_IL,y_BCs,col,alpha=0.2,transformX=False):
+def subplotYShadingRanksILog(ax,ranks,y_BCs,col,alpha=0.2,transformX=False):
     
     ax.set_xscale('log')
-    ax.set_yscale('log')
     
     # define x-axis
-    x = np.flipud(1./(1-Q_IL[1:-1]/100.))
+    x = np.flipud(1./(1-ranks/100.))
     # plot
     y1 = y_BCs[0]
     y2 = y_BCs[1]
@@ -60,13 +62,12 @@ def subplotYShadingLogRanksILog(ax,Q_IL,y_BCs,col,alpha=0.2,transformX=False):
     if transformX:
         transformXaxisIL(ax,x)
 
-def subplotXShadingLogRanksILog(ax,Q_IL,i_Q_lims,alpha=0.2,transformX=False):
+def subplotXShadingRanksILog(ax,ranks,i_Q_lims,alpha=0.2,transformX=False):
     
     ax.set_xscale('log')
-    ax.set_yscale('log')
     
     # define x-axis
-    x = np.flipud(1./(1-Q_IL[1:-1]/100.))
+    x = np.flipud(1./(1-ranks/100.))
     # plot
     x0 = x[i_Q_lims[0]]
     x1 = x[i_Q_lims[1]]
@@ -75,3 +76,4 @@ def subplotXShadingLogRanksILog(ax,Q_IL,i_Q_lims,alpha=0.2,transformX=False):
     # transform x-axis
     if transformX:
         transformXaxisIL(ax,x)
+

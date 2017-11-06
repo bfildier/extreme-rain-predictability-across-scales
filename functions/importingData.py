@@ -175,7 +175,6 @@ def getSimulationValues(varid,inputdir,dt='day',inputfiles=None,dates=None,subse
 		fh = Dataset(file,'r')
 		if varid in fh.variables.keys():
 			vals_within_dt.append(fh.variables[varid][:])
-			print(file)
 		if len(vals_within_dt) == dt_ratio:
 			values_list.append(cn.mean(cn.concatenate(vals_within_dt,axis=0),
 									   axis=0,
