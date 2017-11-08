@@ -333,10 +333,10 @@ def covAtYPercentiles(rank,X1,X2,Y,ranks=None,percentiles=None,rank_locations=No
 			return cov(X1[stencil_Q],X2[stencil_Q]).compute()
 
 ## Percentiles of X within percentile bins of Y
-def XPercentilesAtYPercentiles(rank_X,X,ranks_Y,Y,ranks_X=None,percentiles_X=None,ranks_locations_X=None):
+def XPercentilesAtYPercentiles(rank_X,X,ranks_Y,Y,ranks_X=None,percentiles_X=None,rank_locations_X=None):
 
 	# Get rank locations
-	stencil_Q = getRankLocations(rank,Y,ranks_X,percentiles_X,rank_locations_X)
+	stencil_Q = getRankLocations(rank_X,Y,ranks_X,percentiles_X,rank_locations_X)
 	# Compute percentile
 	X_at_rank = X[stencil_Q].compute()
 	if X_at_rank.size == 0:
