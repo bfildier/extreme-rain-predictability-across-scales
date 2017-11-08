@@ -62,15 +62,15 @@ def subplotYShadingRanksILog(ax,ranks,y_BCs,col,alpha=0.2,transformX=False):
     if transformX:
         transformXaxisIL(ax,x)
 
-def subplotXShadingRanksILog(ax,ranks,i_Q_lims,alpha=0.2,transformX=False):
-    
+def subplotXShadingRanksILog(ax,ranks,iQ_lims,alpha=0.2,col='0.75',transformX=False):
+
     ax.set_xscale('log')
     
     # define x-axis
     x = np.flipud(1./(1-ranks/100.))
     # plot
-    x0 = x[i_Q_lims[0]]
-    x1 = x[i_Q_lims[1]]
+    x0 = x[iQ_lims[0]]
+    x1 = x[iQ_lims[1]]
     ax.axvspan(x0,x1,color = '0.75',alpha=alpha)
     
     # transform x-axis
