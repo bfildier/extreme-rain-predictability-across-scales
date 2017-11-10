@@ -66,7 +66,7 @@ def saturationVaporPressure(temp):
     if temp.__class__ == np.ndarray:
         return qvstar_numpy(temp)
     elif temp.__class__ == da.core.Array:
-        return temp.map_blocks(qvstar_numpy)
+        return da.map_blocks(qvstar_numpy,temp,dtype=np.float64)
     elif 'float' in str(temp.__class__):
         if temp > T_0:
             return 611.21*np.exp((18.678-(temp-T_0)/234.5)*(temp-T_0)/(257.14+(temp-T_0)))

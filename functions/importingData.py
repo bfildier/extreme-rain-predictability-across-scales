@@ -122,7 +122,7 @@ def getSimulationFiles(varid,inputdir,inputfiles=None,dates=None,handle=None):
 			for d in dates]
 		for file in glob.glob(os.path.join(inputdir,pattern)):
 			if dates is not None: 
-				dt_info = filename.split('.')[-2].replace('-','')
+				dt_info = file.split('.')[-2].replace('-','')
 				dt = datetime(int(dt_info[:4]),int(dt_info[4:6]),int(dt_info[6:8]))+\
 					timedelta(seconds=int(dt_info[8:13]))
 				if dt < dt_bnds[0] or dt >= dt_bnds[1]:
