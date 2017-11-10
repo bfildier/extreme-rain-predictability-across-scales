@@ -11,6 +11,7 @@ from math import *
 import numpy as np
 import dask.array as da
 from netCDF4 import Dataset
+from scipy.interpolate import interp1d
 
 #---- Own functions ----#
 currentpath = os.path.dirname(os.path.realpath(__file__))
