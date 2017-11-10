@@ -156,6 +156,8 @@ def isobaricSurface(var,pres,p_ref=500,levdim=1):
 	# Ravelled indices just below and just above reference pressure
 	i_diff = cn.diff(i_LT)
 	i_diff[i_diff == -1] = 0
+	i_diff2 = np.take(i_LT,range(i_LT.size-1),axis=-1) - np.take(i_LT,range(1,i_LT.size),axis=-1)
+	i_diff2[i_diff2 == -1] = 0
 	i_below = cn.hstack((np.zeros((1,),dtype=int),i_diff))
 	i_above = cn.hstack((i_diff,np.zeros((1,),dtype=int)))
 	i_below,i_above = i_below.astype(bool,copy=False),i_above.astype(bool,copy=False)
@@ -195,11 +197,51 @@ def isobaricSurface(var,pres,p_ref=500,levdim=1):
 
 	return var_pref
 
+## Other version to interpolate variable on pressure level
+def varAtPressureLevelInterp1D(var,pres3D,p_ref):
 
+	"""Only works with numpy arrays, not dask.array's.
+	After implementing the same function using scipy.interpolate.griddata,
+	this is substantially faster."""
+    
+    n = pres3D[0].size
+    pshape = pres3D[0].shape
+    var_ref = np.array([np.nan]*n).reshape(pshape)
+    
+    for (ilat,ilon) in np.ndindex(*pshape):
+        try:
+            var_ref[ilat,ilon] = interp1d(pres3D[:,ilat,ilon],var[:,ilat,ilon])(p_ref)
+        except ValueError:
+            var_ref[ilat,ilon] = np.nan
+    
+    return var_ref
 
+## Interpolates var at a given pressure level
+def varAtPressureLevel(var,pres3D,p_ref,timedim=0,levdim=1):
 
+	"""This is a wrapper around varAtPressureLevelInterp1D to work with numpy
+	or dask arrays. Careful, varAtPressureLevelInterp1D assumes a specific order
+	timedim,levdim,latdim,londim."""
 
+    cn = getArrayType(var)
+    vshape = var.shape
 
+    out_list = []
+    for itime in range(vshape[timedim]):
+        v = cn.squeeze(cn.take(var,[itime],axis=timedim),axis=timedim)
+        p = cn.squeeze(cn.take(pres3D,[itime],axis=timedim),axis=timedim)
+        if cn == da:
+            v,p = v.compute(), p.compute()
+        v_out = varAtPressureLevelInterp1D(v,p,p_ref)
+        out_list.append(v_out[np.newaxis,...])
+    var_out = np.vstack(out_list)
+    
+    if cn == da:
+        newchunks = list(var.chunks)
+        del newchunks[levdim]
+        var_out = da.from_array(var_out,chunks=tuple(newchunks))
+    
+    return var_out
 
 
 
