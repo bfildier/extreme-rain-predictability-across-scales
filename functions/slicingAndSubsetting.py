@@ -246,7 +246,7 @@ def varAtPressureLevel(var,pres3D,p_ref,timedim=0,levdim=1):
 		v_out = delayed(varAtPressureLevelInterp1D)(v,p,p_ref)
 		out_list.append(v_out[np.newaxis,...])
 
-	var_out = delayed(mergeResults)(out_list)
+	var_out = delayed(mergeResults)(out_list).compute()
 
 	return var_out
 
