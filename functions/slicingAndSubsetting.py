@@ -203,18 +203,18 @@ def varAtPressureLevelInterp1D(var,pres3D,p_ref):
 	"""Only works with numpy arrays, not dask.array's.
 	After implementing the same function using scipy.interpolate.griddata,
 	this is substantially faster."""
-    
-    n = pres3D[0].size
-    pshape = pres3D[0].shape
-    var_ref = np.array([np.nan]*n).reshape(pshape)
-    
-    for (ilat,ilon) in np.ndindex(*pshape):
-        try:
-            var_ref[ilat,ilon] = interp1d(pres3D[:,ilat,ilon],var[:,ilat,ilon])(p_ref)
-        except ValueError:
-            var_ref[ilat,ilon] = np.nan
-    
-    return var_ref
+
+	n = pres3D[0].size
+	pshape = pres3D[0].shape
+	var_ref = np.array([np.nan]*n).reshape(pshape)
+
+	for (ilat,ilon) in np.ndindex(*pshape):
+		try:
+			var_ref[ilat,ilon] = interp1d(pres3D[:,ilat,ilon],var[:,ilat,ilon])(p_ref)
+		except ValueError:
+			var_ref[ilat,ilon] = np.nan
+
+	return var_ref
 
 ## Interpolates var at a given pressure level
 def varAtPressureLevel(var,pres3D,p_ref,timedim=0,levdim=1):
@@ -223,25 +223,25 @@ def varAtPressureLevel(var,pres3D,p_ref,timedim=0,levdim=1):
 	or dask arrays. Careful, varAtPressureLevelInterp1D assumes a specific order
 	timedim,levdim,latdim,londim."""
 
-    cn = getArrayType(var)
-    vshape = var.shape
+	cn = getArrayType(var)
+	vshape = var.shape
 
-    out_list = []
-    for itime in range(vshape[timedim]):
-        v = cn.squeeze(cn.take(var,[itime],axis=timedim),axis=timedim)
-        p = cn.squeeze(cn.take(pres3D,[itime],axis=timedim),axis=timedim)
-        if cn == da:
-            v,p = v.compute(), p.compute()
-        v_out = varAtPressureLevelInterp1D(v,p,p_ref)
-        out_list.append(v_out[np.newaxis,...])
-    var_out = np.vstack(out_list)
-    
-    if cn == da:
-        newchunks = list(var.chunks)
-        del newchunks[levdim]
-        var_out = da.from_array(var_out,chunks=tuple(newchunks))
-    
-    return var_out
+	out_list = []
+	for itime in range(vshape[timedim]):
+		v = cn.squeeze(cn.take(var,[itime],axis=timedim),axis=timedim)
+		p = cn.squeeze(cn.take(pres3D,[itime],axis=timedim),axis=timedim)
+		if cn == da:
+			v,p = v.compute(), p.compute()
+		v_out = varAtPressureLevelInterp1D(v,p,p_ref)
+		out_list.append(v_out[np.newaxis,...])
+	var_out = np.vstack(out_list)
+
+	if cn == da:
+		newchunks = list(var.chunks)
+		del newchunks[levdim]
+		var_out = da.from_array(var_out,chunks=tuple(newchunks))
+
+	return var_out
 
 
 
