@@ -12,6 +12,7 @@ import numpy as np
 import dask.array as da
 from netCDF4 import Dataset
 from scipy.interpolate import interp1d
+from dask import delayed
 
 #---- Own functions ----#
 currentpath = os.path.dirname(os.path.realpath(__file__))
@@ -227,20 +228,24 @@ def varAtPressureLevel(var,pres3D,p_ref,timedim=0,levdim=1):
 	cn = getArrayType(var)
 	vshape = var.shape
 
+	def mergeResults(out_list):
+		var_out = np.vstack(out_list)
+		if cn == da:
+			newchunks = list(var.chunks)
+			del newchunks[levdim]
+			var_out = da.from_array(var_out,chunks=tuple(newchunks))
+		return var_out
+
 	out_list = []
 	for itime in range(vshape[timedim]):
 		v = cn.squeeze(cn.take(var,[itime],axis=timedim),axis=timedim)
 		p = cn.squeeze(cn.take(pres3D,[itime],axis=timedim),axis=timedim)
 		if cn == da:
 			v,p = v.compute(), p.compute()
-		v_out = varAtPressureLevelInterp1D(v,p,p_ref)
+		v_out = delayed(varAtPressureLevelInterp1D)(v,p,p_ref)
 		out_list.append(v_out[np.newaxis,...])
-	var_out = np.vstack(out_list)
 
-	if cn == da:
-		newchunks = list(var.chunks)
-		del newchunks[levdim]
-		var_out = da.from_array(var_out,chunks=tuple(newchunks))
+	var_out = delayed(mergeResults)(out_list)
 
 	return var_out
 
