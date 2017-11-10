@@ -223,7 +223,8 @@ def varAtPressureLevel(var,pres3D,p_ref,timedim=0,levdim=1):
 
 	"""This is a wrapper around varAtPressureLevelInterp1D to work with numpy
 	or dask arrays. Careful, varAtPressureLevelInterp1D assumes a specific order
-	timedim,levdim,latdim,londim."""
+	timedim,levdim,latdim,londim.
+	As is, it is much slower than isobaricSurface for large datasets."""
 
 	cn = getArrayType(var)
 	vshape = var.shape
