@@ -133,12 +133,11 @@ def reduceDomain(values,subsetname,examplefile,varid):
 def isobaricSurface(var,pres,p_ref=500,levdim=1):
 	
 	"""From a 4D variables, extract a 3D (time-lat-lon) surface at constant 
-	pressure p_ref (in hPa).
+	pressure p_ref (in Pa).
 	Assumes values of p are decreasing along levdim."""
 
 	cn = getArrayType(var)
 
-	p_ref *= 100	# in Pa
 	# Put vertical dimension in last position
 	dimorder = list(range(len(pres.shape)))
 	newdimorder = dimorder[:levdim]+dimorder[levdim+1:]+[dimorder[levdim]]
@@ -177,23 +176,9 @@ def isobaricSurface(var,pres,p_ref=500,levdim=1):
 	pres_below = getVals(pres_ravel,i_valid,i_below,newshape,newchunks)
 	pres_above = getVals(pres_ravel,i_valid,i_above,newshape,newchunks)
 
-	# if cn == da:
-	# 	pres_below = da.compress(i_below.compute(),pres_ravel)
-	# 	pres_above = da.compress(i_above.compute(),pres_ravel)
-	# elif cn == np:
-	# 	pres_below = getVals(pres_ravel,i_valid,i_below,newshape)
-	# 	pres_above = getVals(pres_ravel,i_valid,i_above,newshape)
-
-
 	f = (p_ref-pres_above)/(pres_below-pres_above)
-	# Interpolate variable onto p_ref surface
 	
-	# if cn == da:
-	# 	var_pref = cn.reshape(f*da.compress(i_below.compute(),var_ravel) + 
-	# 						  (1-f)*da.compress(i_above.compute(),var_ravel),newshape)
-	# elif cn == np:
-	# 	# var_pref = cn.reshape(f*var_ravel[i_below] + (1-f)*var_ravel[i_above],newshape)
-	
+	# Interpolate variable onto p_ref surface	
 	var_pref = f*getVals(var_ravel,i_valid,i_below,newshape,newchunks) +\
 				   (1-f)*getVals(var_ravel,i_valid,i_above,newshape,newchunks)
 

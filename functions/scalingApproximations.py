@@ -95,7 +95,7 @@ def verticalPressureIntegral(pres,values=None,dvdp=None,levdim=0):
 from scipy.optimize import leastsq
 
 def computeScalingOmegaTAtAllRanks(ranks,omega_lev,temp_lev,pres_lev,pr_ref,
-    ranks_ref=None,efficiency=None,percentiles=None,rank_locations=None):
+    ranks_ref=None,efficiency=None,bins=None,rank_locations=None):
     
     """Returns the scaling expression computed over Q-binned predictor variables.
     Either efficiency is None, in which case need to compute efficiency for Q_ref range,
@@ -103,19 +103,19 @@ def computeScalingOmegaTAtAllRanks(ranks,omega_lev,temp_lev,pres_lev,pr_ref,
     
     if efficiency is None:            
         efficiency = computeEfficiencyScalingOmegaT(omega_lev,temp_lev,pres_lev,
-            pr_ref,ranks_ref,ranks,percentiles,rank_locations)
+            pr_ref,ranks_ref,ranks,bins,rank_locations)
     
     pr_sc = np.array(list(map(lambda x:computeScalingOmegaTAtRank(x,omega_lev,
-        temp_lev,pres_lev,pr_ref,efficiency,ranks,percentiles,rank_locations),
+        temp_lev,pres_lev,pr_ref,efficiency,ranks,bins,rank_locations),
         ranks)))
     return efficiency, pr_sc
 
 def computeScalingOmegaTAtRank(rank,omega_lev,temp_lev,pres_lev,pr_ref,
-    efficiency=1,ranks=None,percentiles=None,rank_locations=None):
+    efficiency=1,ranks=None,bins=None,rank_locations=None):
 
-    omega_Q = meanXAtYPercentiles(rank,omega_lev,pr_ref,ranks,percentiles,rank_locations)
-    temp_Q = meanXAtYPercentiles(rank,temp_lev,pr_ref,ranks,percentiles,rank_locations)
-    pres_Q = meanXAtYPercentiles(rank,pres_lev,pr_ref,ranks,percentiles,rank_locations)
+    omega_Q = meanXAtYRank(rank,omega_lev,pr_ref,ranks,bins,rank_locations)
+    temp_Q = meanXAtYRank(rank,temp_lev,pr_ref,ranks,bins,rank_locations)
+    pres_Q = meanXAtYRank(rank,pres_lev,pr_ref,ranks,bins,rank_locations)
     
     return singleLevelScalingFromOmegaT(omega_Q,temp_Q,pres_Q,efficiency=efficiency)
         
@@ -130,31 +130,31 @@ def computeEfficiency(pr_sc,pr_ref,Q_slice=slice(None,None)):
     return leastSquareCoef(pr_sc[Q_slice],pr_ref[Q_slice])
 
 def computeEfficiencyScalingOmegaT(omega_lev,temp_lev,pres_lev,pr_ref,ranks_ref,
-    ranks=None,percentiles=None,rank_locations=None):
+    ranks=None,bins=None,rank_locations=None):
     
-    """Compute efficiency as the tuning coefficient between percentiles of pr_ref
+    """Compute efficiency as the tuning coefficient between bins of pr_ref
     and the scaling expression derived from mean values of omega, temp and pres in
     the corresponding percentile bins (Q_ref) of the pr_ref distribution."""
     
     pr_sc_zeroeff_Qs = np.array(list(map(lambda x:computeScalingOmegaTAtRank(x,
-        omega_lev,temp_lev,pres_lev,pr_ref,1,ranks,percentiles,rank_locations),
+        omega_lev,temp_lev,pres_lev,pr_ref,1,ranks,bins,rank_locations),
         ranks_ref)))
-    pr_ref_Qs = np.array(list(map(lambda x:meanXAtYPercentiles(x,pr_ref,pr_ref,
-        ranks,percentiles,rank_locations),ranks_ref)))    
+    pr_ref_Qs = np.array(list(map(lambda x:meanXAtYRank(x,pr_ref,pr_ref,
+        ranks,bins,rank_locations),ranks_ref)))    
 
     return computeEfficiency(pr_sc_zeroeff_Qs,pr_ref_Qs)
 
-
 def computeScalingOmegaQAtRank(rank,omega_lev,spechum_lev,pr_ref,efficiency=1,
-    ranks=None,percentiles=None,rank_locations=None):
+    ranks=None,bins=None,rank_locations=None):
+    
 
-    omega_Q = meanXAtYPercentiles(rank,omega_lev,pr_ref,ranks,percentiles,rank_locations)
-    spechum_Q = meanXAtYPercentiles(rank,spechum_lev,pr_ref,ranks,percentiles,rank_locations)
+    omega_Q = meanXAtYRank(rank,omega_lev,pr_ref,ranks,bins,rank_locations)
+    spechum_Q = meanXAtYRank(rank,spechum_lev,pr_ref,ranks,bins,rank_locations)
     
     return singleLevelScalingFromOmegaQ(omega_Q,spechum_Q,efficiency=efficiency)
   
 def computeScalingOmegaQAtAllRanks(ranks,omega_lev,spechum_lev,
-    pr_ref,ranks_ref=None,efficiency=None,percentiles=None,rank_locations=None):
+    pr_ref,ranks_ref=None,efficiency=None,bins=None,rank_locations=None):
     
     """Returns the scaling expression computed over Q-binned predictor variables.
     Either efficiency is None, in which case need to compute efficiency for Q_ref range,
@@ -162,23 +162,23 @@ def computeScalingOmegaQAtAllRanks(ranks,omega_lev,spechum_lev,
     
     if efficiency is None:            
         efficiency = computeEfficiencyScalingOmegaQ(omega_lev,spechum_lev,
-            pr_ref,ranks_ref,ranks,percentiles,rank_locations)
+            pr_ref,ranks_ref,ranks,bins,rank_locations)
     
     pr_sc = np.array(list(map(lambda x:computeScalingOmegaQAtRank(x,omega_lev,
-        spechum_lev,pr_ref,efficiency,ranks,percentiles,rank_locations),ranks)))
+        spechum_lev,pr_ref,efficiency,ranks,bins,rank_locations),ranks)))
     return efficiency, pr_sc
 
 def computeEfficiencyScalingOmegaQ(omega_lev,spechum_lev,pr_ref,ranks_ref,
-    ranks=None,percentiles=None,rank_locations=None):
+    ranks=None,bins=None,rank_locations=None):
     
-    """Compute efficiency as the tuning coefficient between percentiles of pr_ref
+    """Compute efficiency as the tuning coefficient between bins of pr_ref
     and the scaling expression derived from mean values of omega and q in
     the corresponding percentile bins (Q_ref) of the pr_ref distribution."""
     
     pr_sc_zeroeff_Qs = np.array(list(map(lambda x:computeScalingOmegaQAtRank(x,
-        omega_lev,spechum_lev,pr_ref,1,ranks,percentiles,rank_locations),ranks_ref)))
-    pr_ref_Qs = np.array(list(map(lambda x:meanXAtYPercentiles(x,pr_ref,pr_ref,
-        ranks,percentiles,rank_locations),ranks_ref)))    
+        omega_lev,spechum_lev,pr_ref,1,ranks,bins,rank_locations),ranks_ref)))
+    pr_ref_Qs = np.array(list(map(lambda x:meanXAtYRank(x,pr_ref,pr_ref,
+        ranks,bins,rank_locations),ranks_ref)))    
 
     return computeEfficiency(pr_sc_zeroeff_Qs,pr_ref_Qs)
 

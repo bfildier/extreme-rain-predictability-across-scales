@@ -76,8 +76,6 @@ def getProcessedValues(varid,inputdir,inputfiles=None,dates=None,concataxis=0,da
 
     """Get $varid values from processed data directory $inputdir."""
 
-    # print("enter getProcessedValues")
-
     cn = da if daskarray else np
     
     if inputfiles is None:
@@ -94,7 +92,10 @@ def getProcessedValues(varid,inputdir,inputfiles=None,dates=None,concataxis=0,da
     if len(values_list) == 0:
         print("%s not found in processed files"%varid)
         return None
-    print("%s found in processed files"%varid)
+    # print("%s found in processed files"%varid)
+    print("Importing %s from %d processed files between %s and %s"%
+		(varid,len(inputfiles),inputfiles[0].split('.')[-2],
+			inputfiles[-1].split('.')[-2]))
     values_array = cn.concatenate(values_list,axis=concataxis)
     return values_array
 
@@ -113,7 +114,6 @@ def getSimulationFiles(varid,inputdir,inputfiles=None,dates=None,handle=None):
 	pattern = "*.????-??-??-?????.nc"
 	if handle is not None:
 		pattern = "*.%s%s"%(handle,pattern[1:])
-		# print("new pattern:",pattern)
 	# Search inputfiles
 	if inputfiles is None:
 		inputfiles = []
@@ -167,8 +167,6 @@ def getSimulationValues(varid,inputdir,dt='day',inputfiles=None,dates=None,subse
 	# Import data
 	dt_ratio = timeResolutionRatio(dt,settings[handle][0])
     
-	print(dt_ratio)
-    
 	vals_within_dt = []
 	values_list = []
 	for file in inputfiles:
@@ -188,9 +186,12 @@ def getSimulationValues(varid,inputdir,dt='day',inputfiles=None,dates=None,subse
 		return 
     
 	# If found
-	print("%s found in history files"%varid)
-	print("Importing %s from %d files\n  from\n  %s\n  to\n  %s"%
-		(varid,len(inputfiles),inputfiles[0],inputfiles[-1]))
+	# print("%s found in history files"%varid)
+	# print("Importing %s from %d files\n  from\n  %s\n  to\n  %s"%
+	# 	(varid,len(inputfiles),inputfiles[0],inputfiles[-1]))
+	print("Importing %s from %d history files between %s and %s"%
+		(varid,len(inputfiles),inputfiles[0].split('.')[-2],
+			inputfiles[-1].split('.')[-2]))
 	values = cn.concatenate(values_list,axis=0)
 	values = reduceDomain(values,subsetname,inputfiles[0],varid)
 
