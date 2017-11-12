@@ -146,7 +146,6 @@ def computeEfficiencyScalingOmegaT(omega_lev,temp_lev,pres_lev,pr_ref,ranks_ref,
 
 def computeScalingOmegaQAtRank(rank,omega_lev,spechum_lev,pr_ref,efficiency=1,
     ranks=None,bins=None,rank_locations=None):
-    
 
     omega_Q = meanXAtYRank(rank,omega_lev,pr_ref,ranks,bins,rank_locations)
     spechum_Q = meanXAtYRank(rank,spechum_lev,pr_ref,ranks,bins,rank_locations)

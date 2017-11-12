@@ -77,3 +77,13 @@ def subplotXShadingRanksILog(ax,ranks,iQ_lims,alpha=0.2,col='0.75',transformX=Fa
     if transformX:
         transformXaxisIL(ax,x)
 
+def addZeroLine(ax,x):
+
+    ax_line = ax.twinx()
+    subplotRanksILog(ax_line,x,
+                     np.zeros(x.size),
+                     col='gray',ltype=':',transformX=False)
+    ax_line.yaxis.set_ticks_position('none')
+    ax_line.yaxis.set_ticklabels('')
+    ax_line.set_ylim(ax.get_xlim())
+

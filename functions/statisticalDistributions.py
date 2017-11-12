@@ -271,6 +271,15 @@ def sampleSizeAtYRank(rank,Y,ranks=None,bins=None,rank_locations=None):
 	elif Y.__class__ == da.core.Array:
 		return (stencil_Q.sum()).compute()
 
+## Sample size at all ranks
+def sampleSizeAtAllRanks(targetranks,Y,ranks,bins=None,rank_locations=None):
+
+	out = np.array([np.nan]*ranks.size)
+	for rank in targetranks:
+		iQ = indexOfRank(rank,ranks)
+		out[iQ] = sampleSizeAtYRank(rank,Y,ranks,bins,rank_locations)
+	return out
+
 ## Mean of X at locations of bins of Y
 def meanXAtYRank(rank,X,Y,ranks=None,bins=None,rank_locations=None):
 
@@ -287,6 +296,15 @@ def meanXAtYRank(rank,X,Y,ranks=None,bins=None,rank_locations=None):
 		return np.nanmean(X[stencil_Q])
 	elif Y.__class__ == da.core.Array:
 		return da.nanmean(X[stencil_Q]).compute()
+
+## Mean of X within given percentile bins of Y
+def meanXAtAllYRanks(targetranks,X,Y,ranks,bins=None,rank_locations=None):
+
+	out = np.array([np.nan]*ranks.size)
+	for rank in targetranks:
+		iQ = indexOfRank(rank,ranks)
+		out[iQ] = meanXAtYRank(rank,X,Y,ranks,bins,rank_locations)
+	return out
 
 ## Variance of X at locations of bins of Y
 def varXAtYRank(rank,X,Y,ranks=None,bins=None,rank_locations=None):
@@ -306,6 +324,15 @@ def varXAtYRank(rank,X,Y,ranks=None,bins=None,rank_locations=None):
 		with warnings.catch_warnings():
 			warnings.simplefilter("ignore")
 			return da.nanvar(X[stencil_Q]).compute()
+
+## Variance of X within given precentile bins of Y
+def varXAtAllYRanks(targetranks,X,Y,ranks,bins=None,rank_locations=None):
+
+	out = np.array([np.nan]*ranks.size)
+	for rank in targetranks:
+		iQ = indexOfRank(rank,ranks)
+		out[iQ] = varXAtYRank(rank,X,Y,ranks,bins,rank_locations)
+	return out
 
 ## Covariance of X1,X2 at locations of bins of Y
 def covAtYRank(rank,X1,X2,Y,ranks=None,bins=None,rank_locations=None):
@@ -330,8 +357,18 @@ def covAtYRank(rank,X1,X2,Y,ranks=None,bins=None,rank_locations=None):
 		# 	warnings.simplefilter("ignore")
 		return cov(X1[stencil_Q],X2[stencil_Q]).compute()
 
+## Covariance of X1,X2 within given percentile bins of Y
+def covAtAllYRanks(targetranks,X1,X2,Y,ranks,bins=None,rank_locations=None):
+
+	out = np.array([np.nan]*ranks.size)
+	for rank in targetranks:
+		iQ = indexOfRank(rank,ranks)
+		out[iQ] = covAtYRank(rank,X1,X2,Y,ranks,bins,rank_locations)
+	return out
+
 ## Percentiles of X within percentile bins of Y
-def XPercentilesAtYRank(rank_X,X,ranks_Y,Y,ranks_X=None,bins_X=None,rank_locations_X=None):
+def XPercentilesAtYRank(rank_X,X,ranks_Y,Y,ranks_X=None,bins_X=None,
+	rank_locations_X=None):
 
 	# print(rank_X,end=' ')
 	# Get rank locations
@@ -346,4 +383,14 @@ def XPercentilesAtYRank(rank_X,X,ranks_Y,Y,ranks_X=None,bins_X=None,rank_locatio
 			out = np.percentile(X_at_rank,ranks_Y)
 	return out
 
+## Percentiles of X within given percentile bins of Y
+def XPercentilesAtAllYRanks(targetranks_X,X,ranks_Y,Y,ranks_X,bins_X=None,
+	rank_locations_X=None):
+
+	out = np.array([[np.nan]*len(ranks_Y)]*ranks_X.size)
+	for rank_X in targetranks_X:
+		iQ = indexOfRank(rank_X,ranks_X)
+		out[iQ] = XPercentilesAtYRank(rank_X,X,ranks_Y,Y,ranks_X,bins_X,
+			rank_locations_X)
+	return out
 
