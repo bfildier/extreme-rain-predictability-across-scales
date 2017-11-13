@@ -16,6 +16,8 @@ sed -i='' 's/%matplotlib/#%matplotlib/g' temp.ipynb
 sed -i='' 's/%autoreload/#%autoreload/g' temp.ipynb
 # Comment figure display
 sed -i='' 's/plt.show()/plt.close()/g' temp.ipynb
+# Uncomment matplotlib option to allow plotting on a non interactive backend
+sed -i='' 's/# matplotlib.use(/matplotlib.use(/g' temp.ipynb
 
 # Convert temp copy to python script
 jupyter nbconvert --to script temp.ipynb --output $outputname
