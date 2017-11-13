@@ -240,6 +240,18 @@ def rankID(rank):
 
 	return "%2.4f"%rank
 
+## Add np.nans where Y is not defined in reference ranks axis
+def adjustRanks(Y,Yranks,ranks_ref):
+    
+    """Assuming that all Yranks are in ranks_ref."""
+
+    Y_adj = np.array([np.nan]*ranks_ref.size)
+    for iQ in range(Yranks.size):
+        iQ_ref = indexOfRank(Yranks[iQ],ranks_ref)
+        Y_adj[iQ_ref] = Y[iQ]
+    
+    return Y_adj
+
 ## Get rank locations from rank, ranks and bins, or rank and ranks_locations
 def getRankLocations(rank,Y,ranks=None,bins=None,rank_locations=None):
 

@@ -9,6 +9,7 @@ Functions to plot curves on inverse-logarithmic x-axis (extremes).
 import matplotlib.pyplot as plt
 import numpy as np
 from math import log10,ceil
+from matplotlib.patches import Polygon
 
 
 #---- Functions ----#
@@ -73,6 +74,21 @@ def subplotXShadingRanksILog(ax,ranks,iQ_lims,alpha=0.2,col='0.75',transformX=Fa
     x1 = x[iQ_lims[1]]
     ax.axvspan(x0,x1,color = '0.75',alpha=alpha)
     
+    # transform x-axis
+    if transformX:
+        transformXaxisIL(ax,x)
+
+def addXHatchRanksILog(ax,ranks,iQ_lims,transformX=False):
+
+    ax.set_xscale('log')
+
+    x = np.flipud(1./(1-ranks/100.))
+    ax.add_patch(Polygon([[x[iQ_lims[0]], ax.get_ylim()[0]],\
+                          [x[iQ_lims[1]], ax.get_ylim()[0]],\
+                          [x[iQ_lims[1]], ax.get_ylim()[1]],\
+                          [x[iQ_lims[0]], ax.get_ylim()[1]]],\
+                          closed=True, fill=False, hatch='//',linewidth=0,
+                          color = 'gray'))
     # transform x-axis
     if transformX:
         transformXaxisIL(ax,x)
