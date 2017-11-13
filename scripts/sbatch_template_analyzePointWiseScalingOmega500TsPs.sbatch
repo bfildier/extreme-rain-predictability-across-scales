@@ -16,4 +16,4 @@ module load python/3.6-anaconda-4.4
 sed -i='' 's/^dates =.*/dates = "185005010000","185006010000"/g' analyzePointWiseScalingOmega500TsPs.py
 
 # Run script
-python -u analyzePointWiseScalingOmega500TsPs.py &> ../logs/analyzePointWiseScalingOmega500TsPs_`date +"%Y%m%d-%H%M"`.log
+python -u analyzePointWiseScalingOmega500TsPs.py 2&>1 | tee ../logs/analyzePointWiseScalingOmega500TsPs_`date +"%Y%m%d-%H%M"`.log
