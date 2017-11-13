@@ -14,7 +14,7 @@ hostname = socket.gethostname()
 if hostname == "jollyjumper":
 	## Parent directory to load data
 	dataroot = "/Users/bfildier/Data"
-elif "edison" in hostname or "cori" in hostname:
+elif "edison" in hostname or "cori" in hostname or "nid" in hostname:
 	dataroot = "/global/cscratch1/sd/bfildier/lawrencium_runs"
 # sys.path.insert(0,os.path.join(os.path.dirname(currentpath),'functions'))
 
