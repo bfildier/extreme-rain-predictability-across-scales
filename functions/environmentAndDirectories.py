@@ -34,7 +34,7 @@ def getInputDirectories(compset,experiment):
 		inputdir = os.path.join(dataroot,"simulations",case)
 		inputdir_processed_day = os.path.join(dataroot,'preprocessed',case,'day')
 		inputdir_processed_1hr = os.path.join(dataroot,'preprocessed',case,'1hr')
-	elif "edison" in hostname or "cori" in hostname:
+	elif "edison" in hostname or "cori" in hostname or "nid" in hostname:
 		inputdir = os.path.join(dataroot,'archive',case,"atm/hist")
 		inputdir_processed_day = os.path.join(dataroot,'preprocessed',
 			case,'day')
