@@ -382,11 +382,12 @@ def covAtAllYRanks(targetranks,X1,X2,Y,ranks,bins=None,rank_locations=None):
 def XPercentilesAtYRank(rank_X,X,ranks_Y,Y,ranks_X=None,bins_X=None,
 	rank_locations_X=None):
 
-	# print(rank_X,end=' ')
+	cn = getArrayType(X)
+
 	# Get rank locations
 	stencil_Q = getRankLocations(rank_X,Y,ranks_X,bins_X,rank_locations_X)
 	# Compute percentile
-	X_at_rank = X[stencil_Q].compute()
+	X_at_rank = X[stencil_Q] if cn == np else X[stencil_Q].compute()
 	if X_at_rank.size == 0 :
 		out = np.array([np.nan]*len(ranks_Y))
 	else:
