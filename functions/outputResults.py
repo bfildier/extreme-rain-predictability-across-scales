@@ -14,21 +14,21 @@ import pandas as pd
 
 
 ## Save array size and time for execution of script in dataframe
-def saveTiming(fulltimingfile,arraysize,time_elapsed_s,reset_value=False):
+def saveTiming(fulltimingfile,column_label,arraysize,time_elapsed_s,reset_value=False):
     
     time_elapsed = str(dt.timedelta(seconds=time_elapsed_s))
     print('Script successfully terminated in %s.'%time_elapsed)
-    print('> Save timing and size info to %s.'%timingfile)
+    print('> Save timing and size info to %s.'%fulltimingfile)
     if os.path.isfile(fulltimingfile):
         timing_df = pd.read_csv(fulltimingfile)
         timing_df.set_index('index',inplace=True) 
-        if reset_value or output_suffix not in timing_df.keys():
-            timing_df[output_suffix] = [1,pr.size,time_elapsed]
+        if reset_value or column_label not in timing_df.keys():
+            timing_df[column_label] = [1,arraysize,time_elapsed]
         else:
             # Get previous values
-            ntimes = int(timing_df[output_suffix]['ntimes'])
-            oldarraysize = int(timing_df[output_suffix]['arraysize'])
-            runtime_str = timing_df[output_suffix]['runtime']
+            ntimes = int(timing_df[column_label]['ntimes'])
+            oldarraysize = int(timing_df[column_label]['arraysize'])
+            runtime_str = timing_df[column_label]['runtime']
             # print warning if sizes are different
             if arraysize != oldarraysize:
                 print("WARNING: replacing old array size %d with new size %d in %s."%\
@@ -41,9 +41,9 @@ def saveTiming(fulltimingfile,arraysize,time_elapsed_s,reset_value=False):
             newruntime = str(dt.timedelta(seconds=newruntime_s))
             print(runtime_str,newruntime)
             # save
-            timing_df[output_suffix] = [ntimes+1,arraysize,newruntime]
+            timing_df[column_label] = [ntimes+1,arraysize,newruntime]
     else:
-        timing_df = pd.DataFrame({'index':['ntimes','arraysize','runtime'],output_suffix:[1,arraysize,time_elapsed]})
+        timing_df = pd.DataFrame({'index':['ntimes','arraysize','runtime'],column_labels:[1,arraysize,time_elapsed]})
         timing_df.set_index('index',inplace=True)
     timing_df.to_csv(fulltimingfile)
     return timing_df

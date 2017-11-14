@@ -28,7 +28,7 @@ def transformXaxisIL(ax,x):
             break
     ax.set_xticklabels(labels)
 
-def subplotRanksILog(ax,ranks,y,col=None,ltype=None,alpha=None,transformX=False):
+def subplotRanksILog(ax,ranks,y,col=None,ltype=None,linewidth=None,alpha=None,transformX=False):
     
     ax.set_xscale('log')
 
@@ -37,12 +37,13 @@ def subplotRanksILog(ax,ranks,y,col=None,ltype=None,alpha=None,transformX=False)
     # plot
     if isinstance(y,list):
         for i in range(len(y)):
-            lt = [ltype[i] if ltype is not None else '-'][0]
-            a = [alpha[i] if alpha is not None else 1][0]
-            c = [col[i] if col is not None else 1][0]
-            ax.plot(x,y[i],c=c,alpha=a,linestyle=lt)
+            lt = ltype[i] if ltype is not None else '-'
+            a = alpha[i] if alpha is not None else 1
+            c = col[i] if col is not None else 1
+            lw = linewidth[i] if linewidth is not None else 1.5
+            ax.plot(x,y[i],c=c,alpha=a,linestyle=lt,linewidth=lw)
     else:
-        ax.plot(x,y,c=col,alpha=alpha,linestyle=ltype)
+        ax.plot(x,y,c=col,alpha=alpha,linestyle=ltype,linewidth=linewidth)
 
     # transform x-axis
     if transformX:

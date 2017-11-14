@@ -17,23 +17,15 @@ module load python/3.6-anaconda-4.4
 ./ipynb2py36.sh analyzePointWiseScalingOmega500TsPs.ipynb analyzePointWiseScalingOmega500TsPs
 
 # Edit options in script
-startdate=185005010000
-enddate=185005020000
-
+startdate=185005010100
+enddate=185105010000
 sed -i='' 's/^dates =.*/dates = "'$startdate'","'$enddate'"/g' analyzePointWiseScalingOmega500TsPs.py
-
-sed -i='' 's/^daskarray =.*/daskarray = False/' analyzePointWiseScalingOmega500TsPs.py
-
+daskarray=True
+sed -i='' 's/^daskarray =.*/daskarray = '${daskarray}'/' analyzePointWiseScalingOmega500TsPs.py
+tracktime=True
+sed -i='' 's/^tracktime =.*/tracktime = '${tracktime}'/' analyzePointWiseScalingOmega500TsPs.py
 
 #---- Run script----#
-# Start timer
-start=`date +%s`
-todaysdate=`date +"%Y%m%d-%H%M"`
 
-python -u analyzePointWiseScalingOmega500TsPs.py &> ../logs/analyzePointWiseScalingOmega500TsPs_${todaysdate}.log
+python -u analyzePointWiseScalingOmega500TsPs.py > ../logs/analyzePointWiseScalingOmega500TsPs_${todaysdate}.log
 
-# End timer and save time execution
-end=`date +%s`
-runtime=$((end-start))
-python -c "import datetime as dt; t_el=dt.timedelta(seconds=$runtime);\
-print('Script successfully terminated in %s.'%t_el)"
