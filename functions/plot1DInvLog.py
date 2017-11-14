@@ -98,7 +98,7 @@ def addZeroLine(ax,x):
     ax_line = ax.twinx()
     subplotRanksILog(ax_line,x,
                      np.zeros(x.size),
-                     col='gray',ltype=':',transformX=False)
+                     col='gray',ltype='-',linewidth=0.8,transformX=False)
     ax_line.yaxis.set_ticks_position('none')
     ax_line.yaxis.set_ticklabels('')
     ax_line.set_ylim(ax.get_ylim())
