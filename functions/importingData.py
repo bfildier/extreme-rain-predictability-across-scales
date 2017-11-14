@@ -125,7 +125,7 @@ def getSimulationFiles(varid,inputdir,inputfiles=None,dates=None,handle=None):
 				dt_info = file.split('.')[-2].replace('-','')
 				dt = datetime(int(dt_info[:4]),int(dt_info[4:6]),int(dt_info[6:8]))+\
 					timedelta(seconds=int(dt_info[8:13]))
-				if dt < dt_bnds[0] or dt >= dt_bnds[1]:
+				if dt < dt_bnds[0] or dt > dt_bnds[1]:
 					continue
 			inputfiles.append(file)
 	else:
@@ -141,7 +141,8 @@ def getSimulationFiles(varid,inputdir,inputfiles=None,dates=None,handle=None):
 	return inputfiles
 
 ## Get values from original hourly output
-def getSimulationValues(varid,inputdir,dt='day',inputfiles=None,dates=None,subsetname='tropics',handle=None,daskarray=True):
+def getSimulationValues(varid,inputdir,time_stride='day',inputfiles=None,dates=None,
+	subsetname='tropics',handle=None,daskarray=True):
 
 	"""Get $varid values from CAM/SPCAM history files in $inputdir.
 	dates is a pair of dates in format YYYYmmddHHMM
@@ -161,12 +162,18 @@ def getSimulationValues(varid,inputdir,dt='day',inputfiles=None,dates=None,subse
 	if handle is None:
 		handle = handleCAMHistoryFiles(inputfiles[0])
 	settings = getCAMHistoryFilesSettings()
-	if not isValidHandle(handle,dt,settings):
+	if not isValidHandle(handle,time_stride,settings):
 		return 
     
 	# Import data
-	dt_ratio = timeResolutionRatio(dt,settings[handle][0])
+	dt_ratio = timeResolutionRatio(time_stride,settings[handle][0])
     
+    # Abort if there is not enough data
+	if dt_ratio > len(inputfiles):
+		print("Time stride %s is too large for the historical files available"%\
+			  time_stride)
+		return None
+
 	vals_within_dt = []
 	values_list = []
 	for file in inputfiles:
@@ -198,7 +205,8 @@ def getSimulationValues(varid,inputdir,dt='day',inputfiles=None,dates=None,subse
 	return values
 
 # Main function to extract data values from processed files or history files
-def getValues(varid,compset,subsetname,experiment,time_stride,time_type='A',dates=None,handle=None,daskarray=True):
+def getValues(varid,compset,subsetname,experiment,time_stride,time_type='A',
+	dates=None,handle=None,daskarray=True):
 
 	"""Wrapper around the other 'get*Values' functions that loads the data 
 	for a given time resolution (stride), type and date range, for a compset
@@ -213,13 +221,19 @@ def getValues(varid,compset,subsetname,experiment,time_stride,time_type='A',date
 	 inputdir_fx = getInputDirectories(compset,experiment)
 	
 	# Try history files in case this is an original varid
-	values = getSimulationValues(varid,inputdir,time_stride,None,dates,subsetname,handle,daskarray=daskarray)
+	values = getSimulationValues(varid,inputdir,time_stride,None,dates,subsetname,
+		handle,daskarray=daskarray)
 	if values is not None:
 		return values
 
 	# Now look at preprocessed variables
-	inputdir_processed = locals()["inputdir_processed_%s"%time_stride]
-	values = getProcessedValues(varid,inputdir_processed,inputfiles=None,dates=dates,daskarray=daskarray)
+	indir_proc_name = "inputdir_processed_%s"%time_stride
+	if indir_proc_name in locals().keys():
+		inputdir_processed = locals()[indir_proc_name]
+		values = getProcessedValues(varid,inputdir_processed,inputfiles=None,
+			dates=dates,daskarray=daskarray)
+	else:
+		print("Time stride %s not accessible from processed files"%time_stride)
 
 	return values
 

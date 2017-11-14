@@ -6,6 +6,7 @@ Contains functions related to history files settings, time slices, etc.
 #---- modules ----#
 
 import socket, os
+import re
 
 from environmentAndDirectories import *
 
@@ -26,17 +27,26 @@ def getCAMHistoryFilesSettings():
 ## Returns a conversion factor to turn into hours
 def inHours(resolution):
     
-    """Returns the number of hours for a given time stride/resolution"""
+    """Returns the number of hours for a given time stride/resolution.
+    Expected format is 'NX' where N is a integer and X is in ['d','day','days',
+    'h','hr','hour','hours']."""
     
-    resolutions = ['day','1d','3hr','1hr']
-    nhours = [6,24,3,1]
-    conversion = dict(zip(resolutions,nhours))
+    # Define eference conversion factors
+    ref_resolutions = ['d','day','days','h','hr','hour','hours']
+    ref_nhours = [24,24,24,1,1,1,1]
+    conversion = dict(zip(ref_resolutions,ref_nhours))
     
-    if resolution not in conversion.keys():
-        print("Time resolution %s not known."%resolution)
+    # Get reference resolution
+    suffix = " ".join(re.findall("[a-zA-Z]+$", resolution))
+    if suffix not in conversion.keys():
+        print("Time resolution %s is not valid."%resolution)
         return
-    
-    return conversion[resolution]
+
+    # Get multiplicative factor
+    prefix = resolution[:-len(suffix)]
+    n = int(prefix) if prefix != '' else 1
+
+    return n*conversion[suffix]
 
 ## From a target and a source time resolutions, get the ratio
 def timeResolutionRatio(target,source):
