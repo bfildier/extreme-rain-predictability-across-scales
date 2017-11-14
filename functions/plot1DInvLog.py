@@ -101,5 +101,5 @@ def addZeroLine(ax,x):
                      col='gray',ltype=':',transformX=False)
     ax_line.yaxis.set_ticks_position('none')
     ax_line.yaxis.set_ticklabels('')
-    ax_line.set_ylim(ax.get_xlim())
+    ax_line.set_ylim(ax.get_ylim())
 

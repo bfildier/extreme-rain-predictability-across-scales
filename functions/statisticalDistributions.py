@@ -255,18 +255,23 @@ def adjustRanks(Y,Yranks,ranks_ref):
 ## Get rank locations from rank, ranks and bins, or rank and ranks_locations
 def getRankLocations(rank,Y,ranks=None,bins=None,rank_locations=None):
 
+	rank_id = rankID(rank)
+	# If had already been computed before, get it
 	if rank_locations is not None:
 		# print("rank_locations is not None")
-		rank_id = rankID(rank)
 		if rank_id in rank_locations.keys():
 			# print("rank_id in rank_locations.keys()")
 			return rank_locations[rank_id]
 	
+	# If had not been computed before, compute it...
 	if Y.__class__ == np.ndarray:
 		stencil_Q = getStencilAtRank(rank,ranks,bins,Y)
 	elif Y.__class__ == da.core.Array:
 		stencil_Q = da.map_blocks(lambda x: getStencilAtRank(rank,
 			ranks,bins,x),Y,dtype=bool)
+	# ... and store it
+	rank_locations[rank_id] = stencil_Q
+
 	return stencil_Q
 
 ## Mean of X at locations of bins of Y
