@@ -9,22 +9,22 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.basemap import Basemap
 from matplotlib.colors import LogNorm
 import numpy as np
+import numpy.ma as ma
 from math import log10
 
 
 #---- Functions ----#
 
 def plotMapTropics(lon2D,lat2D,v,v_min=None,v_max=None,mode=None,above_zero=False,\
-                   title=None,maskcontinents=False):
+                   title=None,maskcontinents=False,plotfunction='contourf'):
     
     """Assumes that the data is 2D and ranges 30S-30N."""
 
     v2plot = v
     if mode == "log" or above_zero:
-        v2plot = v.copy()
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            v2plot[v <= 0] = np.nan
+            v2plot = ma.masked_where(v <= 1e-14,v)
     
     if v_min is None:
         v_min = np.nanmin(v2plot)
@@ -44,8 +44,12 @@ def plotMapTropics(lon2D,lat2D,v,v_min=None,v_max=None,mode=None,above_zero=Fals
     else:
         levs = np.linspace(v_min,v_max,nlev)
         norm = None
-    map.contourf(lon2D,lat2D,v2plot,levels=levs,cmap=plt.cm.Greens,norm = norm)    
-    #         map.contourf(lon2D,lat2D,freqMap,cmap=plt.cm.Greens)
+    if plotfunction == 'contourf':
+        map.contourf(lon2D,lat2D,v2plot,levels=levs,cmap=plt.cm.Greens,norm = norm)    
+        #         map.contourf(lon2D,lat2D,freqMap,cmap=plt.cm.Greens)
+    elif plotfunction == 'pcolormesh':
+        map.pcolormesh(lon2D,lat2D,v2plot,cmap=plt.cm.Blues,norm = norm,
+            vmin=v_min,vmax=v_max)
     map.drawparallels(range(-90, 100, 30),labels=[1,0,0,1])
     map.drawmeridians(range(0,400,90),labels=[1,0,0,1])
     map.drawcoastlines()

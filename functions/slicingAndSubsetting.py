@@ -235,5 +235,24 @@ def varAtPressureLevel(var,pres3D,p_ref,timedim=0,levdim=1):
 
 	return var_out
 
+## Coarsen data in longitude-latitude dimensions
+def coarsenLatLon(var,coarsen_factor):
 
+	"""Assumes dimensions are ordered like follows: ...,lat,lon."""
+
+	latdim = -2
+	londim = -1
+	cn = getArrayType(var)
+	vshape = var.shape
+	nlat = vshape[latdim]
+	nlon = vshape[londim]
+	nlat_reduced = (nlat//coarsen_factor)*coarsen_factor
+	nlon_reduced = (nlon//coarsen_factor)*coarsen_factor
+	tempshape = vshape[:-2]+(nlat//coarsen_factor,coarsen_factor)+\
+				(nlon//coarsen_factor,coarsen_factor)
+	newshape = vshape[:-2]+(nlat//coarsen_factor,nlon//coarsen_factor)
+	temp = cn.reshape(var[...,:nlat_reduced,:nlon_reduced],tempshape)
+	newvar = cn.mean(temp,axis=(-3,-1))
+
+	return newvar
 

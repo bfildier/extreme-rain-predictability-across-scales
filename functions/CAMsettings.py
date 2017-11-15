@@ -32,8 +32,8 @@ def inHours(resolution):
     'h','hr','hour','hours']."""
     
     # Define eference conversion factors
-    ref_resolutions = ['d','day','days','h','hr','hour','hours']
-    ref_nhours = [24,24,24,1,1,1,1]
+    ref_resolutions = ['d','day','days','h','hr','hrs','hour','hours']
+    ref_nhours = [24,24,24,1,1,1,1,1]
     conversion = dict(zip(ref_resolutions,ref_nhours))
     
     # Get reference resolution
