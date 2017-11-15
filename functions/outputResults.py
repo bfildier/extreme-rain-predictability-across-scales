@@ -43,7 +43,7 @@ def saveTiming(fulltimingfile,column_label,arraysize,time_elapsed_s,reset_value=
             # save
             timing_df[column_label] = [ntimes+1,arraysize,newruntime]
     else:
-        timing_df = pd.DataFrame({'index':['ntimes','arraysize','runtime'],column_labels:[1,arraysize,time_elapsed]})
+        timing_df = pd.DataFrame({'index':['ntimes','arraysize','runtime'],column_label:[1,arraysize,time_elapsed]})
         timing_df.set_index('index',inplace=True)
     timing_df.to_csv(fulltimingfile)
     return timing_df
