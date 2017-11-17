@@ -70,9 +70,14 @@ def subplotXShadingRanksILog(ax,ranks,iQ_lims,alpha=0.2,col='0.75',transformX=Fa
     
     # define x-axis
     x = np.flipud(1./(1-ranks/100.))
-    # plot
+    if iQ_lims[0] >= x.size:
+        return
     x0 = x[iQ_lims[0]]
-    x1 = x[iQ_lims[1]]
+    if iQ_lims[1] >= x.size:
+        x1 = x[-1]
+    else:
+        x1 = x[iQ_lims[1]]
+    # plot
     ax.axvspan(x0,x1,color = '0.75',alpha=alpha)
     
     # transform x-axis

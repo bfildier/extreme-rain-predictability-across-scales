@@ -235,6 +235,29 @@ def varAtPressureLevel(var,pres3D,p_ref,timedim=0,levdim=1):
 
 	return var_out
 
+## Return an integer to say by how many gridcells to coarsen
+def coarseningFactor(resolution):
+
+	"""Format is 'Ndx' where W is an integer"""
+
+	prefix = resolution.split('dx')[0]
+
+	if prefix == '':
+		factor = 1
+	else:
+		factor = int(prefix)
+
+	return factor
+
+## Coarsen data in longitude-latitude dimensions
+def coarsenResolution(var,resolution):
+
+	"""Format is 'Ndx' where W is an integer"""
+
+	factor = coarseningFactor(resolution)
+
+	return coarsenLatLon(var,factor)
+
 ## Coarsen data in longitude-latitude dimensions
 def coarsenLatLon(var,coarsen_factor):
 

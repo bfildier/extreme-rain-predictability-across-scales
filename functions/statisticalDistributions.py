@@ -46,11 +46,12 @@ def getInvLogRanks(n_pts,n_pts_per_bin=nppb,n_bins_per_decade=nbpd,fill_last_dec
 	n_decades = log10(n_pts/n_pts_per_bin) 		# Maximum number of decades
 	dk = 1/n_bins_per_decade
 	if fill_last_decade:
-		k_max = ceil(n_decades) 				# Maximum bin index
+		k_max = ceil(n_decades)				 	# Maximum bin index
 	else:
-		k_max = int(n_decades/dk)*dk 			# Maximum bin index
+		k_max = int(n_decades*n_bins_per_decade)*dk # Maximum bin index
 	scale_invlog = np.arange(0,k_max+dk,dk)
-	ranks_invlog = np.subtract(np.ones(scale_invlog.size),np.power(10,-scale_invlog))*100
+	ranks_invlog = np.subtract(np.ones(scale_invlog.size),
+		np.power(10,-scale_invlog))*100
 
 	return ranks_invlog
 
@@ -240,17 +241,23 @@ def rankID(rank):
 
 	return "%2.4f"%rank
 
-## Add np.nans where Y is not defined in reference ranks axis
+## Add nans where Y is not defined in reference ranks axis
 def adjustRanks(Y,Yranks,ranks_ref):
     
-    """Assuming that all Yranks are in ranks_ref."""
+	"""Assuming that all values Yranks and ranks_ref can match. If ranks_ref
+	is shorter than Yranks, truncate to values corresponding to ranks_ref."""
 
-    Y_adj = np.array([np.nan]*ranks_ref.size)
-    for iQ in range(Yranks.size):
-        iQ_ref = indexOfRank(Yranks[iQ],ranks_ref)
-        Y_adj[iQ_ref] = Y[iQ]
-    
-    return Y_adj
+	Q_min = np.min(ranks_ref)
+	Q_max = np.max(ranks_ref)
+	Y_adj = np.array([np.nan]*ranks_ref.size)
+
+	for Q in Yranks:
+		if Q > Q_min and Q < Q_max:
+			iQ = indexOfRank(Q,ranks_ref)
+			iQ_Y = indexOfRank(Q,Yranks)
+			Y_adj[iQ] = Y[iQ_Y]
+
+	return Y_adj
 
 ## Get rank locations from rank, ranks and bins, or rank and ranks_locations
 def getRankLocations(rank,Y,ranks=None,bins=None,rank_locations=None):

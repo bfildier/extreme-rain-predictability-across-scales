@@ -141,8 +141,8 @@ def getSimulationFiles(varid,inputdir,inputfiles=None,dates=None,handle=None):
 	return inputfiles
 
 ## Get values from original hourly output
-def getSimulationValues(varid,inputdir,time_stride='day',inputfiles=None,dates=None,
-	subsetname='tropics',handle=None,daskarray=True):
+def getSimulationValues(varid,inputdir,time_stride='day',resolution='dx',
+	inputfiles=None,dates=None,subsetname='tropics',handle=None,daskarray=True):
 
 	"""Get $varid values from CAM/SPCAM history files in $inputdir.
 	dates is a pair of dates in format YYYYmmddHHMM
@@ -200,13 +200,16 @@ def getSimulationValues(varid,inputdir,time_stride='day',inputfiles=None,dates=N
 		(varid,len(inputfiles),inputfiles[0].split('.')[-2],
 			inputfiles[-1].split('.')[-2]))
 	values = cn.concatenate(values_list,axis=0)
+	# Reduce to tropics
 	values = reduceDomain(values,subsetname,inputfiles[0],varid)
+	# Coarsen to final resolution
+	values = coarsenResolution(values,resolution)
 
 	return values
 
 # Main function to extract data values from processed files or history files
-def getValues(varid,compset,subsetname,experiment,time_stride,time_type='A',
-	dates=None,handle=None,daskarray=True):
+def getValues(varid,compset,subsetname,experiment,time_stride,resolution,
+	time_type='A',dates=None,handle=None,daskarray=True):
 
 	"""Wrapper around the other 'get*Values' functions that loads the data 
 	for a given time resolution (stride), type and date range, for a compset
@@ -221,8 +224,8 @@ def getValues(varid,compset,subsetname,experiment,time_stride,time_type='A',
 	 inputdir_fx = getInputDirectories(compset,experiment)
 	
 	# Try history files in case this is an original varid
-	values = getSimulationValues(varid,inputdir,time_stride,None,dates,subsetname,
-		handle,daskarray=daskarray)
+	values = getSimulationValues(varid,inputdir,time_stride,resolution,None,
+		dates,subsetname,handle,daskarray=daskarray)
 	if values is not None:
 		return values
 
