@@ -177,7 +177,6 @@ def getSimulationValues(varid,inputdir,time_stride='day',resolution='dx',
 	vals_within_dt = []
 	values_list = []
 	for file in inputfiles:
-		print(file)
 		fh = Dataset(file,'r')
 		if varid in fh.variables.keys():
 			vals_within_dt.append(fh.variables[varid][:])
