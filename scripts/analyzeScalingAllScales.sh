@@ -18,17 +18,18 @@ template_batch_script=sbatch_${template_nameroot}.sbatch
 
 ##-- Analysis script options --##
 startdate=185005010100
-enddate=185006010000
+enddate=185105010000
 daskarray=False
 tracktime=True
 compsets='FSPCAMm_AMIP'
 experiments='piControl'
-time_strides='1hr'
-resolutions='3dx'
-
+#time_strides='1h 2h 3h 4h 5h 6h 8h 10h 12h 14h 16h 18h 20h 1d 2d 3d 4d 5d 6d 7d 8d'
+time_strides='6h 12h 18h 1d 8d'
+resolutions='1dx 2dx 3dx 4dx 5dx 6dx 7dx 8dx'
 
 ##-- Batch script options --##
-# WRITE HERE SBATCH OPTIONS
+runmode="regular"
+
 
 ##-- Main --##
 
@@ -43,6 +44,20 @@ sed -i'' 's/(workdir)/(os.path.dirname(workdir))/g' ${template_analysis_script}
 sed -i'' 's/^daskarray =.*/daskarray = '${daskarray}'/' ${template_analysis_script}
 sed -i'' 's/^tracktime =.*/tracktime = '${tracktime}'/' ${template_analysis_script}
 
+# Change run options in batch script
+if [ "$runmode" == "debug" ];
+then
+    sed -i'' 's/^#SBATCH --partition=.*/#SBATCH --partition=debug/' ${template_batch_script}
+    sed -i'' 's/^#SBATCH --qos=/##SBATCH --qos=/' ${template_batch_script}
+    sed -i'' 's/^#SBATCH --time=.*/#SBATCH --time=00:30:00/' ${template_batch_script}
+    sed -i'' 's/^#SBATCH --mail-type=.*/#SBATCH --mail-type=ALL/' ${template_batch_script}
+elif [ "$runmode" == "regular" ];
+then 
+    sed -i'' 's/^#SBATCH --partition=.*/#SBATCH --partition=regular/' ${template_batch_script}
+    sed -i'' 's/.*#SBATCH --qos=.*/#SBATCH --qos=premium/' ${template_batch_script}
+    sed -i'' 's/^#SBATCH --time=.*/#SBATCH --time=02:00:00/' ${template_batch_script}
+    sed -i'' 's/^#SBATCH --mail-type=.*/#SBATCH --mail-type=FAIL,TIME_LIMIT_90/' ${template_batch_script}
+fi
 
 # Launch all runs
 for compset in `echo ${compsets}`;
@@ -80,6 +95,7 @@ do
 
 ##-- Launch batch script--##
 
+                echo -n "$compset $experiment ${time_stride} ${resolution}: "
                 sbatch $batchscript
                 
             done
