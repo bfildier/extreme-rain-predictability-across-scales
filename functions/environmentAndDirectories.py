@@ -7,6 +7,8 @@ Contains functions to define directory structure, paths and other settings.
 
 import socket, os
 
+hostname = socket.gethostname()
+
 #---- Own functions ----#
 # currentpath = os.path.dirname(os.path.realpath(__file__))
 # sys.path.insert(0,os.path.join(os.path.dirname(currentpath),'functions'))
@@ -16,7 +18,6 @@ import socket, os
 ## Define dataroot
 def getDataroot(compset=None):
 	## Host name
-	hostname = socket.gethostname()
 	if hostname == "jollyjumper":
 		## Parent directory to load data
 		dataroot = "/Users/bfildier/Data"
@@ -38,7 +39,7 @@ def getInputDirectories(compset,experiment):
 
 	case = "bf_%s_%s"%(compset,experiment)
 	dataroot = getDataroot(compset)
-	
+
 	if hostname == "jollyjumper":
 		inputdir = os.path.join(dataroot,"simulations",case)		
 	elif "edison" in hostname or "cori" in hostname or "nid" in hostname:
