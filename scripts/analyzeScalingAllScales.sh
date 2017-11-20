@@ -18,7 +18,7 @@ template_batch_script=sbatch_${template_nameroot}.sbatch
 
 ##-- Analysis script options --##
 startdate=185005010100
-enddate=185105010000
+enddate=185006010000
 daskarray=False
 tracktime=True
 compsets='FSPCAMm_AMIP'
