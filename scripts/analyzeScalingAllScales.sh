@@ -19,13 +19,21 @@ template_batch_script=sbatch_${template_nameroot}.sbatch
 ##-- Analysis script options --##
 startdate=185005010100
 enddate=185105010000
+#enddate=185006010000
 daskarray=False
 tracktime=True
 compsets='FSPCAMm_AMIP'
-experiments='piControl'
+#compsets='FAMIPC5'
+#experiments='piControl'
+experiments='abrupt4xCO2'
 #time_strides='1h 2h 3h 4h 5h 6h 8h 10h 12h 14h 16h 18h 20h 1d 2d 3d 4d 5d 6d 7d 8d'
-time_strides='6h 12h 18h 1d 8d'
-resolutions='1dx 2dx 3dx 4dx 5dx 6dx 7dx 8dx'
+#time_strides='1h 6h 12h 1d'
+time_strides='1d'
+#time_strides='3h 18h 2d 4d'
+#resolutions='1dx 2dx 3dx 4dx 5dx 6dx 7dx 8dx'
+resolutions='8dx'
+#time_strides='1d'
+#resolutions='1dx'
 
 ##-- Batch script options --##
 runmode="regular"
