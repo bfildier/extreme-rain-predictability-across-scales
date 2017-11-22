@@ -23,6 +23,8 @@ from statisticalDistributions import *
 
 #---- Functions ----# 
 
+##-- Single-level scaling calculations --#
+
 ## Scaling approximation from single-level omega T and p
 def singleLevelScalingFromOmegaT(omega,temp,pres,efficiency=None):
 
@@ -49,47 +51,6 @@ def singleLevelScalingFromOmegaQ(omega,spechum,efficiency=None):
         return -omega*spechum/gg
     else:
         return -efficiency*omega*spechum/gg
-
-
-## Compute vertical integral on pressure coordinates
-def verticalPressureIntegral(pres,values=None,dvdp=None,levdim=0):
-
-    """Arguments: np.ndarray's or dask.array's with identical dimensions
-    Returns: @f[ \int x \frac{dp}{g}@f] from bottom to top of atmosphere.
-    It is defined negative for positive values."""
-
-    cn = getArrayType(pres)
-    dp = cn.diff(pres,axis=levdim) 
-
-    if values is None:  # If values not given, compute weight of vertical 
-                        # column; normalizing factor
-        return cn.nansum(dp/gg,axis=levdim)
-    elif values.__class__ == da.core.Array or values.__class__ == np.ndarray:
-        nlev = pres.shape[levdim]
-        val_mids = np.take(values,range(nlev-1),axis=levdim) \
-        - np.take(values,range(1,nlev),axis=levdim)
-        val_prod = dp*val_mids
-    elif values.__class__ == list:
-        nlev = pres.shape[levdim]
-        val_prod = dp.copy()
-        for i in range(len(values)):
-            val_mids = np.take(values[i],range(nlev-1),axis=levdim) \
-            - np.take(values[i],range(1,nlev),axis=levdim)
-            val_prod = val_prod*val_mids
-    
-    dvdp_prod = 1
-    if dvdp is not None:
-        if dvdp.__class__ == da.core.Array or dvdp.__class__ == np.ndarray:
-            dvdp_prod = dvdp
-        elif dvdp.__class__ == list:
-            for i in range(len(dvdp)):
-                dvdp_prod = dvdp_prod*dvdp[i]
-
-    return cn.nansum(val_prod*dvdp_prod/gg,axis=levdim)
-
-## Compute O'Gorman & Schneider's scaling
-
-
 
 
 from scipy.optimize import leastsq
@@ -181,4 +142,82 @@ def computeEfficiencyScalingOmegaQ(omega_lev,spechum_lev,pr_ref,ranks_ref,
 
     return computeEfficiency(pr_sc_zeroeff_Qs,pr_ref_Qs)
 
+
+##-- O'Gorman&Schneider scaling --##
+
+## Vertical integral on pressure coordinates
+def verticalPressureIntegral(pres,values=None,dvdp=None,levdim=0):
+
+    """Arguments: np.ndarray's or dask.array's with identical dimensions
+    Returns: @f[ \int x \frac{dp}{g}@f] from bottom to top of atmosphere.
+    It is defined negative for positive values."""
+
+    cn = getArrayType(pres)
+    dp = cn.diff(pres,axis=levdim) 
+
+    if values is None:  # If values not given, compute weight of vertical 
+                        # column; normalizing factor
+        return cn.nansum(dp/gg,axis=levdim)
+    elif values.__class__ == da.core.Array or values.__class__ == np.ndarray:
+        nlev = pres.shape[levdim]
+        val_mids = np.take(values,range(nlev-1),axis=levdim) \
+        - np.take(values,range(1,nlev),axis=levdim)
+        val_prod = dp*val_mids
+    elif values.__class__ == list:
+        nlev = pres.shape[levdim]
+        val_prod = dp.copy()
+        for i in range(len(values)):
+            val_mids = np.take(values[i],range(nlev-1),axis=levdim) \
+            - np.take(values[i],range(1,nlev),axis=levdim)
+            val_prod = val_prod*val_mids
+    
+    dvdp_prod = 1
+    if dvdp is not None:
+        if dvdp.__class__ == da.core.Array or dvdp.__class__ == np.ndarray:
+            dvdp_prod = dvdp
+        elif dvdp.__class__ == list:
+            for i in range(len(dvdp)):
+                dvdp_prod = dvdp_prod*dvdp[i]
+
+    return cn.nansum(val_prod*dvdp_prod/gg,axis=levdim)
+
+## Find cold-point tropopause level
+def tropopauseIndex(temp1D):
+    
+    cn = getArrayType(temp1D)
+
+    return cn.argmin(temp1D)
+    # (or return when temperature first stops decreasing)
+    # return temp1D.size - cn.argmax(cn.diff(cn.flipud(temp1D)) > 0)
+
+## Find bottom index
+def bottomIndex(pres1D):
+
+    cn = getArrayType(pres1D)
+
+    return cn.argmax(pres1D)
+
+## Crop profiles between surface and tropopause
+def cropProfiles(pres1D,temp1D,values1D=None):
+
+    i_bot = bottomIndex(pres1D)
+    i_trop = tropopauseIndex(temp1D)
+    print(i_bot,i_trop)
+    i_min = min(i_bot,i_trop)
+    i_max = max(i_bot,i_trop)
+    s = slice(i_min,i_max+1)
+    print(s)
+    pres_c = pres1D[s]
+    temp_c = temp1D[s]
+
+    if values1D.__class__ == np.ndarray or values1D.__class__ == da.core.Array:
+        values_c = values1D[s]
+        return pres_c, temp_c, values_c
+    elif values1D.__class__ == list:
+        values_c = []
+        for values in values1D:
+            values_c.append(values[s])
+        return (pres_c,temp_c)+tuple(values_c)
+
+## Compute O'Gorman & Schneider's scaling
 

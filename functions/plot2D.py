@@ -6,6 +6,7 @@
 
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib import patchess
 
 
 
@@ -48,3 +49,18 @@ def subplotMultiscaleVar(ax,var,time_strides,cmap='viridis',vmin=None,vmax=None)
 	ax.set_yticklabels(labels=yticklabels)
 
 	plt.colorbar()
+
+## Hatch time_strides/resolutions where the reference value (e.g. sample
+## size) is below some threshold
+def addHatchBelowThreshold(ax,var_ref,threshold):
+
+    """Assumes that the plot has been made with imshow,
+    so that we can refer to grid cells from their indices."""
+
+    N_res, N_times = samplesize.shape
+    for i,j in np.ndindex((N_times,N_res)):
+        if var_ref[j,i] <= threshold:
+            ax.add_patch(patches.Rectangle((i-0.5, j-0.5), 1, 1, 
+               fill=True, snap=False, linewidth=0,color='white'))
+            ax.add_patch(patches.Rectangle((i-0.5, j-0.5), 1, 1, 
+               hatch='//', fill=False, snap=False, linewidth=0.1,color='gray'))

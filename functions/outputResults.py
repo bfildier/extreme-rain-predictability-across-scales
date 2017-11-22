@@ -58,7 +58,7 @@ def saveTiming(fulltimingfile,column_label,arraysize,time_elapsed_s,reset_value=
 # Extract varid in an array for all time_strides and resolutions
 def getTXVarFromResults(varid,results,time_strides,resolutions,iQ_slice,avg_mode='mean'):
     
-    """'avg_mode' can be mean or sum""" 
+    """'avg_mode' can be mean or sum"""  
 
     nres = len(resolutions)
     nts = len(time_strides)

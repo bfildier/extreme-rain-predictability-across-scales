@@ -18,6 +18,7 @@ currentpath = os.path.dirname(os.path.realpath(__file__))
 sys.path.insert(0,os.path.join(os.path.dirname(currentpath),'functions'))
     
 from daskOptions import *
+from slicingAndSubsetting import *
 
 #---- Parameters ----#
 ## Default number of bins per logarithmic decade.
@@ -329,6 +330,17 @@ def meanXAtAllYRanks(targetranks,X,Y,ranks,bins=None,rank_locations=None):
 		iQ = indexOfRank(rank,ranks)
 		out[iQ] = meanXAtYRank(rank,X,Y,ranks,bins,rank_locations)
 	return out
+
+## Compute mean vertical profile of X within percentile bins of Y
+def meanXProfileAtRank(rank,X,Y,ranks,bins=None,rank_locations=None):
+
+	# Get rank locations
+	stencil_Q = getRankLocations(rank,Y,ranks,bins,rank_locations)
+	# Return nan if empty
+	if stencil_Q.sum() == 0:
+		return np.nan
+
+	return computeTimeHorizontalMean(X,stencil_Q,is_3D=True)
 
 ## Variance of X at locations of bins of Y
 def varXAtYRank(rank,X,Y,ranks=None,bins=None,rank_locations=None):
