@@ -9,6 +9,7 @@ import sys,os
 from math import *
 import numpy as np
 import dask.array as da
+from scipy.optimize import leastsq
 
 #---- Own functions ----#
 # currentpath = os.path.dirname(os.path.realpath(__file__))
@@ -53,10 +54,9 @@ def singleLevelScalingFromOmegaQ(omega,spechum,efficiency=None):
         return -efficiency*omega*spechum/gg
 
 
-from scipy.optimize import leastsq
-
 def computeScalingOmegaTAtAllRanks(ranks,omega_lev,temp_lev,pres_lev,pr_ref,
-    ranks_ref=None,efficiency=None,bins=None,rank_locations=None):
+    ranks_ref=None,percentiles_ref=None,efficiency=None,bins=None,
+    rank_locations=None):
     
     """Returns the scaling expression computed over Q-binned predictor variables.
     Either efficiency is None, in which case need to compute efficiency for Q_ref range,
@@ -64,11 +64,12 @@ def computeScalingOmegaTAtAllRanks(ranks,omega_lev,temp_lev,pres_lev,pr_ref,
     
     if efficiency is None:            
         efficiency = computeEfficiencyScalingOmegaT(omega_lev,temp_lev,pres_lev,
-            pr_ref,ranks_ref,ranks,bins,rank_locations)
+            pr_ref,ranks_ref,percentiles_ref,ranks,bins,rank_locations)
     
     pr_sc = np.array(list(map(lambda x:computeScalingOmegaTAtRank(x,omega_lev,
         temp_lev,pres_lev,pr_ref,efficiency,ranks,bins,rank_locations),
         ranks)))
+
     return efficiency, pr_sc
 
 def computeScalingOmegaTAtRank(rank,omega_lev,temp_lev,pres_lev,pr_ref,
@@ -84,14 +85,19 @@ def computeScalingOmegaTAtRank(rank,omega_lev,temp_lev,pres_lev,pr_ref,
 def leastSquareCoef(pr_sc,pr_ref):
     
     guess = pr_ref[0]/pr_sc[0]
-    return leastsq(lambda x:pr_ref-x*pr_sc,guess)[0][0]
+    def fun(p):
+        diff_p = pr_ref-p*pr_sc
+        diff_p[np.isnan(diff_p)] = 0
+        return diff_p
+
+    return leastsq(fun,guess)[0][0]
     
 def computeEfficiency(pr_sc,pr_ref,Q_slice=slice(None,None)):
     
     return leastSquareCoef(pr_sc[Q_slice],pr_ref[Q_slice])
 
 def computeEfficiencyScalingOmegaT(omega_lev,temp_lev,pres_lev,pr_ref,ranks_ref,
-    ranks=None,bins=None,rank_locations=None):
+    percentiles_ref,ranks=None,bins=None,rank_locations=None):
     
     """Compute efficiency as the tuning coefficient between bins of pr_ref
     and the scaling expression derived from mean values of omega, temp and pres in
@@ -100,8 +106,9 @@ def computeEfficiencyScalingOmegaT(omega_lev,temp_lev,pres_lev,pr_ref,ranks_ref,
     pr_sc_zeroeff_Qs = np.array(list(map(lambda x:computeScalingOmegaTAtRank(x,
         omega_lev,temp_lev,pres_lev,pr_ref,1,ranks,bins,rank_locations),
         ranks_ref)))
-    pr_ref_Qs = np.array(list(map(lambda x:meanXAtYRank(x,pr_ref,pr_ref,
-        ranks,bins,rank_locations),ranks_ref)))    
+    # pr_ref_Qs = np.array(list(map(lambda x:meanXAtYRank(x,pr_ref,pr_ref,
+        # ranks,bins,rank_locations),ranks_ref)))    
+    pr_ref_Qs = percentiles_ref
 
     return computeEfficiency(pr_sc_zeroeff_Qs,pr_ref_Qs)
 
@@ -113,8 +120,9 @@ def computeScalingOmegaQAtRank(rank,omega_lev,spechum_lev,pr_ref,efficiency=1,
     
     return singleLevelScalingFromOmegaQ(omega_Q,spechum_Q,efficiency=efficiency)
   
-def computeScalingOmegaQAtAllRanks(ranks,omega_lev,spechum_lev,
-    pr_ref,ranks_ref=None,efficiency=None,bins=None,rank_locations=None):
+def computeScalingOmegaQAtAllRanks(ranks,omega_lev,spechum_lev,pr_ref,
+    ranks_ref=None,percentiles_ref=None,efficiency=None,bins=None,
+    rank_locations=None):
     
     """Returns the scaling expression computed over Q-binned predictor variables.
     Either efficiency is None, in which case need to compute efficiency for Q_ref range,
@@ -122,14 +130,15 @@ def computeScalingOmegaQAtAllRanks(ranks,omega_lev,spechum_lev,
     
     if efficiency is None:            
         efficiency = computeEfficiencyScalingOmegaQ(omega_lev,spechum_lev,
-            pr_ref,ranks_ref,ranks,bins,rank_locations)
+            pr_ref,ranks_ref,percentiles_ref,ranks,bins,rank_locations)
     
     pr_sc = np.array(list(map(lambda x:computeScalingOmegaQAtRank(x,omega_lev,
         spechum_lev,pr_ref,efficiency,ranks,bins,rank_locations),ranks)))
+
     return efficiency, pr_sc
 
 def computeEfficiencyScalingOmegaQ(omega_lev,spechum_lev,pr_ref,ranks_ref,
-    ranks=None,bins=None,rank_locations=None):
+    percentiles_ref,ranks=None,bins=None,rank_locations=None):
     
     """Compute efficiency as the tuning coefficient between bins of pr_ref
     and the scaling expression derived from mean values of omega and q in
@@ -137,8 +146,9 @@ def computeEfficiencyScalingOmegaQ(omega_lev,spechum_lev,pr_ref,ranks_ref,
     
     pr_sc_zeroeff_Qs = np.array(list(map(lambda x:computeScalingOmegaQAtRank(x,
         omega_lev,spechum_lev,pr_ref,1,ranks,bins,rank_locations),ranks_ref)))
-    pr_ref_Qs = np.array(list(map(lambda x:meanXAtYRank(x,pr_ref,pr_ref,
-        ranks,bins,rank_locations),ranks_ref)))    
+    # pr_ref_Qs = np.array(list(map(lambda x:meanXAtYRank(x,pr_ref,pr_ref,
+        # ranks,bins,rank_locations),ranks_ref)))    
+    pr_ref_Qs = percentiles_ref
 
     return computeEfficiency(pr_sc_zeroeff_Qs,pr_ref_Qs)
 
@@ -155,21 +165,20 @@ def verticalPressureIntegral(pres,values=None,dvdp=None,levdim=0):
     cn = getArrayType(pres)
     dp = cn.diff(pres,axis=levdim) 
 
-    if values is None:  # If values not given, compute weight of vertical 
-                        # column; normalizing factor
-        return cn.nansum(dp/gg,axis=levdim)
-    elif values.__class__ == da.core.Array or values.__class__ == np.ndarray:
-        nlev = pres.shape[levdim]
-        val_mids = np.take(values,range(nlev-1),axis=levdim) \
-        - np.take(values,range(1,nlev),axis=levdim)
-        val_prod = dp*val_mids
-    elif values.__class__ == list:
-        nlev = pres.shape[levdim]
-        val_prod = dp.copy()
-        for i in range(len(values)):
-            val_mids = np.take(values[i],range(nlev-1),axis=levdim) \
-            - np.take(values[i],range(1,nlev),axis=levdim)
-            val_prod = val_prod*val_mids
+    val_prod = dp.copy()
+    if values is not None:
+        if values.__class__ == da.core.Array or values.__class__ == np.ndarray:
+            nlev = pres.shape[levdim]
+            val_mids = (np.take(values,range(nlev-1),axis=levdim) \
+            + np.take(values,range(1,nlev),axis=levdim))/2
+            val_prod = dp*val_mids
+        if values.__class__ == list:
+            nlev = pres.shape[levdim]
+            val_prod = dp.copy()
+            for i in range(len(values)):
+                val_mids = (np.take(values[i],range(nlev-1),axis=levdim) \
+                + np.take(values[i],range(1,nlev),axis=levdim))/2
+                val_prod = val_prod*val_mids
     
     dvdp_prod = 1
     if dvdp is not None:
@@ -182,42 +191,131 @@ def verticalPressureIntegral(pres,values=None,dvdp=None,levdim=0):
     return cn.nansum(val_prod*dvdp_prod/gg,axis=levdim)
 
 ## Find cold-point tropopause level
-def tropopauseIndex(temp1D):
+def tropopauseIndex(temp,levdim=0):
     
-    cn = getArrayType(temp1D)
+    cn = getArrayType(temp)
 
-    return cn.argmin(temp1D)
+    return cn.argmin(temp,axis=levdim)
     # (or return when temperature first stops decreasing)
     # return temp1D.size - cn.argmax(cn.diff(cn.flipud(temp1D)) > 0)
 
 ## Find bottom index
-def bottomIndex(pres1D):
+def bottomIndex(pres,levdim=0):
 
-    cn = getArrayType(pres1D)
+    cn = getArrayType(pres)
 
-    return cn.argmax(pres1D)
+    return cn.argmax(pres,axis=levdim)
 
 ## Crop profiles between surface and tropopause
-def cropProfiles(pres1D,temp1D,values1D=None):
+def cropProfiles(pres,temp,values=None,levdim=0):
 
-    i_bot = bottomIndex(pres1D)
-    i_trop = tropopauseIndex(temp1D)
-    print(i_bot,i_trop)
-    i_min = min(i_bot,i_trop)
-    i_max = max(i_bot,i_trop)
-    s = slice(i_min,i_max+1)
-    print(s)
-    pres_c = pres1D[s]
-    temp_c = temp1D[s]
+    """Only developed for numpy arrays"""
 
-    if values1D.__class__ == np.ndarray or values1D.__class__ == da.core.Array:
-        values_c = values1D[s]
+    cn = getArrayType(pres)
+
+    # Replace 1D-data values v with nans outside slice s
+    def cropVector(v,s):
+        v_c = v.copy()
+        v_c[:] = np.nan
+        v_c[s] = v[s]
+        return v_c
+    # Apply cropVector function to all dimensions
+    def cropArray(v,i_bot,i_trop,levdim):
+        v_c = np.moveaxis(v,levdim,-1).copy()
+        vshape = v_c.shape[:-1]
+        for ind in cn.ndindex(vshape):
+            i_min = min(i_bot[ind],i_trop[ind])
+            i_max = max(i_bot[ind],i_trop[ind])
+            s = slice(i_min,i_max+1)
+            v_c[ind] = cropVector(v_c[ind],s)
+        return np.moveaxis(v_c,-1,levdim)
+
+    i_bot = bottomIndex(pres)
+    i_trop = tropopauseIndex(temp)
+    # Crop pressure and temperature arrays
+    pres_c = cropArray(pres,i_bot,i_trop,levdim)
+    temp_c = cropArray(temp,i_bot,i_trop,levdim)
+    # Crop all other values arrays
+    if values.__class__ == np.ndarray or values.__class__ == da.core.Array:
+        values_c = cropArray(values,i_bot,i_trop,levdim)
         return pres_c, temp_c, values_c
-    elif values1D.__class__ == list:
+    elif values.__class__ == list:
         values_c = []
-        for values in values1D:
-            values_c.append(values[s])
+        for vals in values:
+            values_c.append(cropArray(vals,i_bot,i_trop,levdim))
         return (pres_c,temp_c)+tuple(values_c)
 
 ## Compute O'Gorman & Schneider's scaling
+def scalingOGS09(omega,temp,pres,efficiency=1,temp_type='profile',parameter=1,
+    levdim=0):
+    
+    """Has not been tested for dask arrays."""
 
+    cn = getArrayType(pres)
+
+    if temp_type == 'profile':
+        temp_profile = temp
+    else:
+        print("wrong type of temperature profile requested. Code this option.")
+    # elif temp_type == 'parametric':
+    #     p_ref = cn.take(pres,-1,axis=levdim)
+    #     temp_profile = 
+
+    pres_c, temp_c, omega_c = cropProfiles(pres,temp_profile,omega,levdim=levdim)
+    qvstar_c = saturationSpecificHumidity(temp_c,pres_c)
+    dqvstar_dp_c = cn.diff(qvstar_c,axis=levdim)/cn.diff(pres_c,axis=levdim)
+
+    return -verticalPressureIntegral(pres_c,
+                                     values=omega_c,
+                                     dvdp=dqvstar_dp_c,
+                                     levdim=levdim)
+
+## Compute OGS09 scaling within a given percentile bin
+def computeScalingOGS09AtRank(rank,omega,temp,pres,pr_ref,temp_type='profile',
+    parameter=1,efficiency=1,ranks=None,bins=None,rank_locations=None):
+    
+    omega_Q = meanXProfileAtYRank(rank,omega,pr_ref,ranks,bins,rank_locations)
+    temp_Q = meanXProfileAtYRank(rank,temp,pr_ref,ranks,bins,rank_locations)
+    pres_Q = meanXProfileAtYRank(rank,pres,pr_ref,ranks,bins,rank_locations)
+    
+    if pres_Q is np.nan or temp_Q is np.nan or omega_Q is np.nan:
+        return np.nan
+
+    return scalingOGS09(omega_Q,temp_Q,pres_Q,efficiency,temp_type,parameter,
+                        levdim=0)
+
+## Efficiency of OGS09 scaling
+def computeEfficiencyScalingOGS09(omega,temp,pres,pr_ref,ranks_ref,
+    percentiles_ref=None,temp_type='profile',parameter=1,ranks=None,bins=None,
+    rank_locations=None):
+    
+    """Compute efficiency as the tuning coefficient between bins of pr_ref
+    and the scaling expression derived from mean profiles of omega, T and p in
+    the corresponding percentile bins (ranks_ref) of the pr_ref distribution."""
+    
+    pr_sc_zeroeff_Qs = np.array(list(map(lambda x:computeScalingOGS09AtRank(x,
+        omega,temp,pres,pr_ref,temp_type,parameter,1,ranks,bins,
+        rank_locations),ranks_ref)))
+    # pr_ref_Qs = np.array(list(map(lambda x:meanXAtYRank(x,pr_ref,pr_ref,
+        # ranks,bins,rank_locations),ranks_ref)))
+    pr_ref_Qs = percentiles_ref
+
+    return computeEfficiency(pr_sc_zeroeff_Qs,pr_ref_Qs)
+
+## Scaling at all ranks
+def computeScalingOGS09AtAllRanks(ranks,omega,temp,pres,pr_ref,
+    temp_type='profile',parameter=1,ranks_ref=None,percentiles_ref=None,
+    efficiency=None,bins=None,rank_locations=None):
+    
+    """Returns the scaling expression computed over Q-binned predictor variables.
+    Either efficiency is None, in which case need to compute efficiency for Q_ref range,
+    or efficiency is not None, in which case Q_ref is not needed."""
+    
+    if efficiency is None:            
+        efficiency = computeEfficiencyScalingOGS09(omega,temp,pres,pr_ref,
+            ranks_ref,percentiles_ref,temp_type,parameter,ranks,bins,rank_locations)
+    
+    pr_sc = np.array(list(map(lambda x:computeScalingOGS09AtRank(x,omega,temp,
+        pres,pr_ref,temp_type,parameter,efficiency,ranks,bins,rank_locations),ranks)))
+
+    return efficiency, pr_sc

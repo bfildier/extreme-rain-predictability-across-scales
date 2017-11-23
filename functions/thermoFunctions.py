@@ -10,12 +10,22 @@ from math import *
 import numpy as np
 import numpy.ma as ma
 import dask.array as da
+from scipy.optimize import leastsq
 
 #---- Own modules ----#
 from thermoConstants import *
 from daskOptions import *
 
 #---- Functions ----#
+
+## Latent heat of vaporisation for water
+def latentHeatWater(temp):
+
+    """Input in K. Output in J/kg. Valid between 248K and 313K."""
+
+    T = temp-273.15
+
+    return (2500.8 - 2.36*T + 0.0016*(T**2) - 0.00006*(T**3))*1000
 
 ## Air density from values of T, p and q
 def airDensity(temp,pres,shum):
@@ -99,6 +109,27 @@ def dryAdiabaticLapseRate(temp,pres,spechum):
 
     return dryGAmma_pCoord
 
+## Parametric analytic approximation to the moist adiabat
+def moistAdiabatParametric(pres,p_ref,t_ref,parameter=1,latent_heat=L_v):
+
+    # return t_ref/(1-R_v*t_ref/L_v*parameter*np.log(pres/p_ref))
+    return t_ref/(1-R_v*t_ref/latent_heat*parameter*np.log(pres/p_ref))
+
+## Optimize parameter from the qvstar profile
+def parameterMoistAdiabat(pres,p_ref,t_ref,qvstar):
+    
+    """Compute the parameter in the analytic approximation for the moist adiabat,
+    using least squares on the resulting profile in saturation specific humidity."""
+
+    def fun(p):
+        t_profile_of_p = moistAdiabatParametric(pres,p_ref,t_ref,parameter=p)
+        qvs_of_p = saturationSpecificHumidity(t_profile_of_p,pres)
+        diff_p = qvstar - qvs_of_p
+        diff_p[np.isnan(diff_p)] = 0
+        return diff_p
+
+    return leastsq(fun,1)[0][0]
+
 ## Multiplicative factor to convert dry adiabat into moist adiabat
 def moistAdiabatFactor(temp,pres):
 
@@ -129,7 +160,7 @@ def moistAdiabaticLapseRateSimple(temp,pres,spechum):
 
 ## Moist adiabatic temperature profile on sigma-levels from values of 
 ## surface temperature, and atmospheric pressure and soecific humidity
-def moistAdiabatSimple(surftemp,pres,spechum,levdim=0):
+def moistAdiabatSimple(surftemp,pres,spechum,levdim=0,reverse=False):
 
     """Vertically integrate the analytic expression for the moist adiabatic 
     lapse rate from surface values (K).
@@ -151,6 +182,12 @@ def moistAdiabatSimple(surftemp,pres,spechum,levdim=0):
     """
 
     cn = getArrayType(pres)
+
+    if reverse:
+        return cn.flipud(moistAdiabatSimple(surftemp,
+                                            cn.flipud(pres),
+                                            cn.flipud(spechum),
+                                            levdim=levdim))
 
     # sh_shape = spechum.shape
     # ts_shape = surftemp.shape

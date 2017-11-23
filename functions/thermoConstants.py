@@ -21,7 +21,7 @@ p_0              = 1.e5             # Pa                               ##
 e_0              = 611.65           # Pa                               ##
                                                                        ##
 ##  Energies, enthalpies, entropies                                    ##
-L_v              = 2500000.         # J/kg                             ##
+L_v              = 2260000.         # J/kg                             ##
 E_0v             = 2374000.         # J/kg                             ##
 E_0s             = 333700.          # J/kg                             ##
 s_0v             = E_0v/T_0 + R_v   # J/kg/K                           ##
@@ -30,6 +30,10 @@ s_0s             = E_0s/T_0         # J/kg/K                           ##
 ##  other                                                              ##
 gg               = 9.81             # m/s^2                            ##
 eps              = R_d/R_v          # Unitless                         ##
+                                                                       ##
+## Densities                                                           ##
+rho_l			 = 998.23           # density of water, kg/m3          ##
+                                                                       ##
                                                                        ##
                                                                        ##
 #########################################################################

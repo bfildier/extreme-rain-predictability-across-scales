@@ -201,6 +201,7 @@ def compute1dDensities(sample,mode='linear',n_pts_per_bin=nppb,\
 	elif isinstance(sample,da.core.Array):
 		densities, edges = da.histogram(sample,bins=breaks,density=True)
 	else:
+		# raise ValueError
 		print("Unvalid data type:", type(sample))
 		return
 
@@ -332,7 +333,7 @@ def meanXAtAllYRanks(targetranks,X,Y,ranks,bins=None,rank_locations=None):
 	return out
 
 ## Compute mean vertical profile of X within percentile bins of Y
-def meanXProfileAtRank(rank,X,Y,ranks,bins=None,rank_locations=None):
+def meanXProfileAtYRank(rank,X,Y,ranks,bins=None,rank_locations=None):
 
 	# Get rank locations
 	stencil_Q = getRankLocations(rank,Y,ranks,bins,rank_locations)
