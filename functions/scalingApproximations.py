@@ -9,7 +9,7 @@ import sys,os
 from math import *
 import numpy as np
 import dask.array as da
-from scipy.optimize import leastsq
+from scipy.optimize import leastsq,curve_fit
 
 #---- Own functions ----#
 # currentpath = os.path.dirname(os.path.realpath(__file__))
@@ -359,6 +359,8 @@ def computeParametersScalingRH(omega,temp,pres,relhum,pr,ranks_ref,
     temp_type='profile',parameter=1,ranks=None,bins=None,
     rank_locations=None):
     
+    cn = getArrayType(omega)
+
     #-- Create optimization function --##
     
     def func(x,a,b):
@@ -374,26 +376,72 @@ def computeParametersScalingRH(omega,temp,pres,relhum,pr,ranks_ref,
 
     # Initialize list for each variable
     for varname in varnames_for_scRH:
-        setattr(thismodule,"%s_ref_list"%varname,[])
+        # setattr(thismodule,"%s_ref_list"%varname,[])
+        locals()["%s_ref_list"%varname] = []
     # fill list with sample variables at each percentile
     for rank in ranks_ref:
-        stencil_Q = rank_locations[rankID(rank)]
+        stencil_Q = getRankLocations(rank,pr,ranks,bins,rank_locations)
         for varname in varnames_for_scRH:
             var = locals()[varname]
-#             var = getattr(thismodule,varname)
-            var_list = getattr(thismodule,"%s_ref_list"%varname)
+            # var_list = getattr(thismodule,"%s_ref_list"%varname)
+            var_list = locals()["%s_ref_list"%varname]
             var_list.append(sampleFlattened(var,stencil_Q))
     # concat arrays from list
     for varname in varnames_for_scRH:
-        var_list = getattr(thismodule,"%s_ref_list"%varname)
-        setattr(thismodule,"%s_ref"%varname,cn.hstack(var_list))
+        # var_list = getattr(thismodule,"%s_ref_list"%varname)
+        var_list = locals()["%s_ref_list"%varname]
+        # setattr(thismodule,"%s_ref"%varname,cn.hstack(var_list))
+        locals()["%s_ref"%varname] = cn.hstack(var_list)
     
     #-- Fit curve to precipitation values --#
-    
-    nlev = omega_ref.shape[0]
-    ndata = omega_ref.shape[1]
-    xdata = np.vstack([omega_ref,ta_ref,pres_ref,relhum_ref])
-    ydata = pr_ref
+
+    nlev = locals()['omega_ref'].shape[0]
+    ndata = locals()['omega_ref'].shape[1]
+    xdata = np.vstack([locals()['omega_ref'],
+                       locals()['temp_ref'],
+                       locals()['pres_ref'],
+                       locals()['relhum_ref']])
+    ydata = locals()['pr_ref']
     p,c = curve_fit(func,xdata,ydata)
     
     return p,c
+
+## Compute OGS09 scaling within a given percentile bin
+def computeScalingRHAtRank(rank,omega,temp,pres,relhum,pr,temp_type='profile',
+    parameter=1,fracarea_boost=1,entrainment=1,
+    ranks=None,bins=None,rank_locations=None):
+
+    omega_Q = meanXProfileAtYRank(rank,omega,pr,ranks,bins,rank_locations)
+    temp_Q = meanXProfileAtYRank(rank,temp,pr,ranks,bins,rank_locations)
+    pres_Q = meanXProfileAtYRank(rank,pres,pr,ranks,bins,rank_locations)
+    relhum_Q = meanXProfileAtYRank(rank,relhum,pr,ranks,bins,rank_locations)
+
+    if pres_Q is np.nan or temp_Q is np.nan or omega_Q is np.nan:
+        return np.nan
+
+    return scalingRH(omega_Q,temp_Q,pres_Q,relhum_Q,fracarea_boost=fracarea_boost,
+        entrainment=entrainment,levdim=0,temp_type=temp_type,parameter=parameter)
+
+## Scaling at all ranks
+def computeScalingRHAtAllRanks(ranks,omega,temp,pres,relhum,pr,temp_type='profile',
+    parameter=1,fracarea_boost=None,entrainment=None,
+    ranks_ref=None,bins=None,rank_locations=None):
+    
+    # """Returns the scaling expression computed over Q-binned predictor variables.
+    # Either efficiency is None, in which case need to compute efficiency for Q_ref range,
+    # or efficiency is not None, in which case Q_ref is not needed."""
+    
+    if fracarea_boost is None or entrainment is None:
+        p,c = computeParametersScalingRH(omega,temp,pres,relhum,pr,ranks_ref,
+            temp_type=temp_type,parameter=parameter,ranks=ranks,bins=bins,
+            rank_locations=rank_locations)
+        fracarea_boost = p[0]
+        entrainment = p[1]
+    
+    pr_sc = np.array(list(map(lambda x:computeScalingRHAtRank(x,omega,temp,pres,
+        relhum,pr,temp_type=temp_type,parameter=parameter,
+        fracarea_boost=fracarea_boost,entrainment=entrainment,ranks=ranks,
+        bins=bins,rank_locations=rank_locations),ranks)))
+
+    return fracarea_boost, entrainment, pr_sc
+
