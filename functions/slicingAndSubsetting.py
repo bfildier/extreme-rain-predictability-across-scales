@@ -25,28 +25,52 @@ from daskOptions import *
 #---- Functions ----# 
 
 ## Extracts a subset of data points for further statistical analysis.
-def sample1d(values,subset=None):
+def sampleFlattened(values,subset=None):
 
 	"""Arguments:
-		- values: a 3D (time,lat,lon) numpy array
+		- values: a 3D (time,lat,lon) or 4D (time,lev,lat,lon) numpy array
 		- subset: a 2D (lat,lon) or 3D (time,lat,lon) numpy array of bools
-	Returns:
-		- 1D numpy.array with valid data"""
+	If values is 3D: apply 3D subset or 2D subset uniformly across time dimension.
+	If values is 4D: apply 2D or 3D subset uniformly across time-lev dimensions.
 
-	# Reduce values to subset
+	Returns:
+		- 1D numpy.array with valid data if values is 3D, 2D array if values is
+		4D, lev dimension first."""
+
+	vshape = values.shape
+	if len(vshape) == 4:
+		levdim = 1
+		nlev = vshape[levdim]
+	if len(vshape) >= 3:
+		timedim = 0
+		ntime = vshape[timedim]
+	
 	if subset is None:	# Then use all points
-		n_pts = values.size
-		return values.flatten()
-	# Otherwise, take slices at each time step
+		if len(vshape) == 3:
+			return values.flatten()
+		elif len(vshape) == 4:
+			return np.swapaxes(values,levdim,0).reshape((nlev,-1))
+	
+	# Otherwise, take slices at each time step / level
 	n_pts = subset.sum()
 	sshape = subset.shape
 	if len(sshape) == 2:
-		ntime = values.shape[0]
-		ind_sub = np.vstack([[subset]]*ntime)
+		if len(vshape) == 3:
+			ind_sub = np.vstack([[subset]]*ntime)
+		elif len(vshape) == 4:
+			ind_sub_time = np.vstack([[subset]]*ntime)
+			ind_sub_lev_first = np.vstack([[ind_sub_time]]*nlev)
 	elif len(sshape) == 3:
-		ind_sub = subset
+		if len(vshape) == 3:
+			ind_sub = subset
+		elif len(vshape) == 4:
+			ind_sub_lev_first = np.vstack([[subset]]*nlev)
 
-	return values[ind_sub]
+	# Take slice
+	if  len(vshape) == 3:
+		return values[ind_sub]
+	elif len(vshape) == 4:
+		return np.swapaxes(values,levdim,0)[ind_sub_lev_first].reshape(nlev,-1)
 
 ## Computes mean of values over selected points
 def computeTimeHorizontalMean(values,ind,is_3D,da_compute=da_compute_default):

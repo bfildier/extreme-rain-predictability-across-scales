@@ -11,7 +11,7 @@ from slicingAndSubsetting import *
 
 if __name__ == "__main__":
 
-	print("--Test sample1d")
+	print("--Test sampleFlattened")
 	x = np.random.random(size=(100,100,100))
 	subset_3D = np.random.random(size=(100,100,100))
 	subset_3D = np.around(subset_3D)
@@ -19,11 +19,11 @@ if __name__ == "__main__":
 	subset_2D = subset_3D[0,...]
 	print('- with 3D slice')
 	print("# valid points =",subset_3D.sum())
-	sample_1D = sample1d(x,subset_3D)
+	sample_1D = sampleFlattened(x,subset_3D)
 	print('sample shape:',sample_1D.shape)
 	print('- with 2D slice')
 	print("# valid points =",subset_2D.sum()*subset_3D.shape[0])
-	sample_1D = sample1d(x,subset_2D)
+	sample_1D = sampleFlattened(x,subset_2D)
 	print('sample shape:',sample_1D.shape)
 	print()
 

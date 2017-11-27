@@ -160,7 +160,8 @@ def verticalPressureIntegral(pres,values=None,dvdp=None,levdim=0):
 
     """Arguments: np.ndarray's or dask.array's with identical dimensions
     Returns: @f[ \int x \frac{dp}{g}@f] from bottom to top of atmosphere.
-    It is defined negative for positive values."""
+    It is defined negative for positive values.
+    """
 
     cn = getArrayType(pres)
     dp = cn.diff(pres,axis=levdim) 
@@ -230,8 +231,8 @@ def cropProfiles(pres,temp,values=None,levdim=0):
             v_c[ind] = cropVector(v_c[ind],s)
         return np.moveaxis(v_c,-1,levdim)
 
-    i_bot = bottomIndex(pres)
-    i_trop = tropopauseIndex(temp)
+    i_bot = bottomIndex(pres,levdim=levdim)
+    i_trop = tropopauseIndex(temp,levdim=levdim)
     # Crop pressure and temperature arrays
     pres_c = cropArray(pres,i_bot,i_trop,levdim)
     temp_c = cropArray(temp,i_bot,i_trop,levdim)
@@ -319,3 +320,80 @@ def computeScalingOGS09AtAllRanks(ranks,omega,temp,pres,pr_ref,
         pres,pr_ref,temp_type,parameter,efficiency,ranks,bins,rank_locations),ranks)))
 
     return efficiency, pr_sc
+
+
+#---- New scaling approximation ----#
+
+## Extension to O'Gorman & Schneider scaling approximation
+def scalingRH(omega,temp,pres,relhum,fracarea_boost=1,entrainment=1,
+    levdim=1,temp_type='profile',parameter=1):
+    
+    """Adding a term that depends on relative humidity, and interpret the first
+    coefficient as the ratio between effective updraft velocity and GCM-scale 
+    vertical velocity."""
+    
+    cn = getArrayType(omega)
+
+    if temp_type == 'profile':
+        temp = temp
+
+    qvstar = saturationSpecificHumidity(temp,pres)
+    spechum = relhum*qvstar
+    rho = airDensity(temp,pres,spechum)
+    
+    pres_c, temp_c, omega_c, qvstar_c, rho_c, relhum_c = cropProfiles(pres,temp,
+        [omega,qvstar,rho,relhum],levdim=levdim)
+    dqvstar_dp_c = cn.diff(qvstar_c,axis=levdim)/cn.diff(pres_c,axis=levdim)
+    
+    pr_sc = fracarea_boost * (- verticalPressureIntegral(pres_c,omega_c,
+        dqvstar_dp_c,levdim=levdim) +\
+    entrainment*verticalPressureIntegral(pres_c,[omega_c,qvstar_c/rho_c/gg,
+        (1-relhum_c/100)],levdim=levdim))
+#     pr_sc = 1/(2*fracarea_eff-1)*(- verticalPressureIntegral(pres_c,values=omega_c,dvdp=dqvstar_dp_c,levdim=levdim) +\
+#     entrainment*verticalPressureIntegral(pres_c,values=[omega_c,qvstar_c/rho_c/gg,(1-relhum_c/100)],levdim=levdim))
+    
+    return pr_sc
+
+## Compute parameters of the extended OGS09 scaling
+def computeParametersScalingRH(omega,temp,pres,relhum,pr,ranks_ref,
+    temp_type='profile',parameter=1,ranks=None,bins=None,
+    rank_locations=None):
+    
+    #-- Create optimization function --##
+    
+    def func(x,a,b):
+        s = []
+        for i in range(4):
+            s.append(slice(i*nlev,(i+1)*nlev))
+        return scalingRH(x[s[0]],x[s[1]],x[s[2]],x[s[3]],fracarea_boost=a,
+                         entrainment=b,levdim=0,temp_type=temp_type,parameter=parameter)
+    
+    #-- Get variables at reference locations --#
+    
+    varnames_for_scRH = ('omega','temp','pres','relhum','pr')
+
+    # Initialize list for each variable
+    for varname in varnames_for_scRH:
+        setattr(thismodule,"%s_ref_list"%varname,[])
+    # fill list with sample variables at each percentile
+    for rank in ranks_ref:
+        stencil_Q = rank_locations[rankID(rank)]
+        for varname in varnames_for_scRH:
+            var = locals()[varname]
+#             var = getattr(thismodule,varname)
+            var_list = getattr(thismodule,"%s_ref_list"%varname)
+            var_list.append(sampleFlattened(var,stencil_Q))
+    # concat arrays from list
+    for varname in varnames_for_scRH:
+        var_list = getattr(thismodule,"%s_ref_list"%varname)
+        setattr(thismodule,"%s_ref"%varname,cn.hstack(var_list))
+    
+    #-- Fit curve to precipitation values --#
+    
+    nlev = omega_ref.shape[0]
+    ndata = omega_ref.shape[1]
+    xdata = np.vstack([omega_ref,ta_ref,pres_ref,relhum_ref])
+    ydata = pr_ref
+    p,c = curve_fit(func,xdata,ydata)
+    
+    return p,c
