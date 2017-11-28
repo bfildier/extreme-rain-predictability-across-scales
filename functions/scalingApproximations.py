@@ -247,15 +247,23 @@ def cropProfiles(pres,temp,values=None,levdim=0):
         return (pres_c,temp_c)+tuple(values_c)
 
 ## Compute O'Gorman & Schneider's scaling
-def scalingOGS09(omega,temp,pres,efficiency=1,temp_type='profile',parameter=1,
+def scalingOGS09(omega,temp,pres,relhum=None,efficiency=1,temp_type='environment',parameter=1,
     levdim=0):
     
     """Has not been tested for dask arrays."""
 
     cn = getArrayType(pres)
 
-    if temp_type == 'profile':
+    if temp_type == 'environment':
         temp_profile = temp
+    elif temp_type == 'adiabat':
+        # Find out the vertical ordering of values
+        nlev = pres.shape[levdim]
+        i_b = bottomIndex(cn.moveaxis(pres,levdim,-1).ravel()[-nlev:])
+        reverse = False if i_b == 0 else True
+        # Compute T profile
+        temp_profile = moistAdiabatSimple(temp,pres,relhum=relhum,levdim=levdim,
+            reverse=reverse)
     else:
         print("wrong type of temperature profile requested. Code this option.")
     # elif temp_type == 'parametric':
@@ -272,30 +280,38 @@ def scalingOGS09(omega,temp,pres,efficiency=1,temp_type='profile',parameter=1,
                                      levdim=levdim)
 
 ## Compute OGS09 scaling within a given percentile bin
-def computeScalingOGS09AtRank(rank,omega,temp,pres,pr_ref,temp_type='profile',
+def computeScalingOGS09AtRank(rank,omega,temp,pres,pr_ref,
+    temp_type='environment',relhum=None,
     parameter=1,efficiency=1,ranks=None,bins=None,rank_locations=None):
     
     omega_Q = meanXProfileAtYRank(rank,omega,pr_ref,ranks,bins,rank_locations)
-    temp_Q = meanXProfileAtYRank(rank,temp,pr_ref,ranks,bins,rank_locations)
     pres_Q = meanXProfileAtYRank(rank,pres,pr_ref,ranks,bins,rank_locations)
-    
+    if temp_type == 'environment':
+        temp_Q = meanXProfileAtYRank(rank,temp,pr_ref,ranks,bins,rank_locations)
+    elif temp_type == 'adiabat':
+        temp_Q = meanXAtYRank(rank,temp,pr_ref,ranks,bins,rank_locations)
+
+    relhum_Q = None
+    if relhum is not None:
+        relhum_Q = meanXProfileAtYRank(rank,relhum,pr_ref,ranks,bins,rank_locations)
+
     if pres_Q is np.nan or temp_Q is np.nan or omega_Q is np.nan:
         return np.nan
 
-    return scalingOGS09(omega_Q,temp_Q,pres_Q,efficiency,temp_type,parameter,
-                        levdim=0)
+    return scalingOGS09(omega_Q,temp_Q,pres_Q,relhum_Q,efficiency,temp_type,
+        parameter,levdim=0)
 
 ## Efficiency of OGS09 scaling
 def computeEfficiencyScalingOGS09(omega,temp,pres,pr_ref,ranks_ref,
-    percentiles_ref=None,temp_type='profile',parameter=1,ranks=None,bins=None,
-    rank_locations=None):
+    percentiles_ref=None,temp_type='environment',relhum=None,
+    parameter=1,ranks=None,bins=None,rank_locations=None):
     
     """Compute efficiency as the tuning coefficient between bins of pr_ref
     and the scaling expression derived from mean profiles of omega, T and p in
     the corresponding percentile bins (ranks_ref) of the pr_ref distribution."""
-    
+
     pr_sc_zeroeff_Qs = np.array(list(map(lambda x:computeScalingOGS09AtRank(x,
-        omega,temp,pres,pr_ref,temp_type,parameter,1,ranks,bins,
+        omega,temp,pres,pr_ref,temp_type,relhum,parameter,1,ranks,bins,
         rank_locations),ranks_ref)))
     # pr_ref_Qs = np.array(list(map(lambda x:meanXAtYRank(x,pr_ref,pr_ref,
         # ranks,bins,rank_locations),ranks_ref)))
@@ -305,8 +321,8 @@ def computeEfficiencyScalingOGS09(omega,temp,pres,pr_ref,ranks_ref,
 
 ## Scaling at all ranks
 def computeScalingOGS09AtAllRanks(ranks,omega,temp,pres,pr_ref,
-    temp_type='profile',parameter=1,ranks_ref=None,percentiles_ref=None,
-    efficiency=None,bins=None,rank_locations=None):
+    temp_type='environment',relhum=None,parameter=1,ranks_ref=None,
+    percentiles_ref=None,efficiency=None,bins=None,rank_locations=None):
     
     """Returns the scaling expression computed over Q-binned predictor variables.
     Either efficiency is None, in which case need to compute efficiency for Q_ref range,
@@ -314,10 +330,12 @@ def computeScalingOGS09AtAllRanks(ranks,omega,temp,pres,pr_ref,
     
     if efficiency is None:            
         efficiency = computeEfficiencyScalingOGS09(omega,temp,pres,pr_ref,
-            ranks_ref,percentiles_ref,temp_type,parameter,ranks,bins,rank_locations)
+            ranks_ref,percentiles_ref,temp_type,relhum,parameter,ranks,bins,
+            rank_locations)
     
     pr_sc = np.array(list(map(lambda x:computeScalingOGS09AtRank(x,omega,temp,
-        pres,pr_ref,temp_type,parameter,efficiency,ranks,bins,rank_locations),ranks)))
+        pres,pr_ref,temp_type,relhum,parameter,efficiency,ranks,bins,
+        rank_locations),ranks)))
 
     return efficiency, pr_sc
 
@@ -326,7 +344,7 @@ def computeScalingOGS09AtAllRanks(ranks,omega,temp,pres,pr_ref,
 
 ## Extension to O'Gorman & Schneider scaling approximation
 def scalingRH(omega,temp,pres,relhum,fracarea_boost=1,entrainment=1,
-    levdim=1,temp_type='profile',parameter=1):
+    levdim=1,temp_type='environment',parameter=1):
     
     """Adding a term that depends on relative humidity, and interpret the first
     coefficient as the ratio between effective updraft velocity and GCM-scale 
@@ -334,8 +352,16 @@ def scalingRH(omega,temp,pres,relhum,fracarea_boost=1,entrainment=1,
     
     cn = getArrayType(omega)
 
-    if temp_type == 'profile':
+    if temp_type == 'environment':
         temp = temp
+    elif temp_type == 'adiabat':
+        # Find out the vertical ordering of values
+        nlev = pres.shape[levdim]
+        i_b = bottomIndex(cn.moveaxis(pres,levdim,-1).ravel()[-nlev:])
+        reverse = False if i_b == 0 else True
+        # Compute T profile
+        temp = moistAdiabatSimple(temp,pres,relhum=relhum,levdim=levdim,
+            reverse=reverse)
 
     qvstar = saturationSpecificHumidity(temp,pres)
     spechum = relhum*qvstar
@@ -356,7 +382,7 @@ def scalingRH(omega,temp,pres,relhum,fracarea_boost=1,entrainment=1,
 
 ## Compute parameters of the extended OGS09 scaling
 def computeParametersScalingRH(omega,temp,pres,relhum,pr,ranks_ref,
-    temp_type='profile',parameter=1,ranks=None,bins=None,
+    temp_type='environment',parameter=1,ranks=None,bins=None,
     rank_locations=None):
     
     cn = getArrayType(omega)
@@ -367,8 +393,15 @@ def computeParametersScalingRH(omega,temp,pres,relhum,pr,ranks_ref,
         s = []
         for i in range(4):
             s.append(slice(i*nlev,(i+1)*nlev))
-        return scalingRH(x[s[0]],x[s[1]],x[s[2]],x[s[3]],fracarea_boost=a,
-                         entrainment=b,levdim=0,temp_type=temp_type,parameter=parameter)
+
+        if temp_type == 'environment':
+            return scalingRH(x[s[0]],x[s[1]],x[s[2]],x[s[3]],fracarea_boost=a,
+                         entrainment=b,levdim=0,temp_type=temp_type,
+                         parameter=parameter)
+        elif temp_type == 'adiabat':
+            return scalingRH(x[s[0]],x[s[1]][0],x[s[2]],x[s[3]],fracarea_boost=a,
+                         entrainment=b,levdim=0,temp_type=temp_type,
+                         parameter=parameter)
     
     #-- Get variables at reference locations --#
     
@@ -393,9 +426,13 @@ def computeParametersScalingRH(omega,temp,pres,relhum,pr,ranks_ref,
         # setattr(thismodule,"%s_ref"%varname,cn.hstack(var_list))
         locals()["%s_ref"%varname] = cn.hstack(var_list)
     
+    # adjust size of temperature variable if need to compute the profile
+    nlev = locals()['omega_ref'].shape[0]
+    if temp_type == 'adiabat':
+        locals()['temp_ref'] = np.vstack([locals()['temp_ref']]*nlev)
+
     #-- Fit curve to precipitation values --#
 
-    nlev = locals()['omega_ref'].shape[0]
     ndata = locals()['omega_ref'].shape[1]
     xdata = np.vstack([locals()['omega_ref'],
                        locals()['temp_ref'],
@@ -407,14 +444,17 @@ def computeParametersScalingRH(omega,temp,pres,relhum,pr,ranks_ref,
     return p,c
 
 ## Compute OGS09 scaling within a given percentile bin
-def computeScalingRHAtRank(rank,omega,temp,pres,relhum,pr,temp_type='profile',
-    parameter=1,fracarea_boost=1,entrainment=1,
+def computeScalingRHAtRank(rank,omega,temp,pres,relhum,pr,
+    temp_type='environment',parameter=1,fracarea_boost=1,entrainment=1,
     ranks=None,bins=None,rank_locations=None):
 
     omega_Q = meanXProfileAtYRank(rank,omega,pr,ranks,bins,rank_locations)
-    temp_Q = meanXProfileAtYRank(rank,temp,pr,ranks,bins,rank_locations)
     pres_Q = meanXProfileAtYRank(rank,pres,pr,ranks,bins,rank_locations)
     relhum_Q = meanXProfileAtYRank(rank,relhum,pr,ranks,bins,rank_locations)
+    if temp_type == 'environment':
+        temp_Q = meanXProfileAtYRank(rank,temp,pr,ranks,bins,rank_locations)
+    elif temp_type == 'adiabat':
+        temp_Q = meanXAtYRank(rank,temp,pr,ranks,bins,rank_locations)
 
     if pres_Q is np.nan or temp_Q is np.nan or omega_Q is np.nan:
         return np.nan
@@ -423,8 +463,8 @@ def computeScalingRHAtRank(rank,omega,temp,pres,relhum,pr,temp_type='profile',
         entrainment=entrainment,levdim=0,temp_type=temp_type,parameter=parameter)
 
 ## Scaling at all ranks
-def computeScalingRHAtAllRanks(ranks,omega,temp,pres,relhum,pr,temp_type='profile',
-    parameter=1,fracarea_boost=None,entrainment=None,
+def computeScalingRHAtAllRanks(ranks,omega,temp,pres,relhum,pr,
+    temp_type='environment',parameter=1,fracarea_boost=None,entrainment=None,
     ranks_ref=None,bins=None,rank_locations=None):
     
     # """Returns the scaling expression computed over Q-binned predictor variables.

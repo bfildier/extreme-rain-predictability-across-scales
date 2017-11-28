@@ -57,7 +57,7 @@ def getInvLogRanks(n_pts,n_pts_per_bin=nppb,n_bins_per_decade=nbpd,fill_last_dec
 	return ranks_invlog
 
 ## Compute percentiles of the distribution and histogram bins from percentile ranks.
-def computePercentilesAndBinsFromRanks(sample,ranks):
+def computePercentilesAndBinsFromRanks(sample,ranks,crop=True):
 
 	"""Arguments:
 		- sample: 1D numpy or dask array of values
@@ -72,8 +72,15 @@ def computePercentilesAndBinsFromRanks(sample,ranks):
 	elif isinstance(sample,da.core.Array):
 		centers = da.percentile(sample,ranks).compute()
 	breaks = np.convolve(centers,[0.5,0.5],mode='valid')
-	centers = centers[1:-1]
-	ranks = ranks[1:-1]
+	if crop:
+		centers = centers[1:-1]
+		ranks = ranks[1:-1]
+	else:
+		temp = breaks.copy()
+		breaks = np.array([np.nan]*(temp.size+2))
+		breaks[0] = -float('inf')
+		breaks[1:-1] = temp
+		breaks[-1] = float('inf')
 
 	return ranks, centers, breaks
 
@@ -169,6 +176,37 @@ def computePercentileRanksFromBins(sample,centers):
 
 	return ranks
 
+## Get percentile ranks, values and bins for given axis transformation
+def ranksPercentilesAndBins(sample,mode='linear',n_pts_per_bin=nppb,
+	n_bins_per_decade=nbpd,n_lin_bins=nlb,vmin=None,vmax=None,crop=True):
+
+	"""Preliminary step to compute probability densities. Define 
+	ranks, percentiles, bins from the sample values and bin structure ('mode').
+	Arguments:
+		- sample: 1D numpy or dask array of values
+		- mode: 'linear', 'log', 'invlogQ'
+		- n_pts_per_bin: minimum number of data points per bin used to choose 
+		the maximum percentile rank (used for invlogQ mode only)
+		- n_bins is only used for linear mode
+	Returns:
+		- ranks, percentiles and bins"""
+
+	if mode == 'linear':
+		percentiles, bins = defineLinearBins(sample,n_lin_bins,vmin,vmax)
+		ranks = computePercentileRanksFromBins(sample,percentiles)
+	elif mode == 'log':
+		percentiles, bins = defineLogBins(sample,n_bins_per_decade,vmin,vmax)
+		ranks = computePercentileRanksFromBins(sample,percentiles)
+	elif mode == 'invlogQ':
+		ranks = getInvLogRanks(sample.size,n_pts_per_bin,n_bins_per_decade)
+		ranks, percentiles, bins = computePercentilesAndBinsFromRanks(sample,
+			ranks,crop=crop)
+	else:
+		print("Unknown mode chosen:", mode)
+		return
+
+	return ranks, percentiles, bins
+
 ## Derive bins centers (percentiles) and edges, percentile ranks and corresponding 
 ## probability densities
 def compute1dDensities(sample,mode='linear',n_pts_per_bin=nppb,\
@@ -177,35 +215,20 @@ def compute1dDensities(sample,mode='linear',n_pts_per_bin=nppb,\
 	"""Arguments:
 		- sample: 1D numpy or dask array of values
 		- mode: 'linear', 'log', 'invlogQ'
-		- n_pts_per_bin: minimum number of data points per bin used to choose the maximum percentile rank
-			(used for invlogQ mode only)
+		- n_pts_per_bin: minimum number of data points per bin used to choose 
+		the maximum percentile rank (used for invlogQ mode only)
 		- n_bins is only used for linear mode
 	Returns:
-		- ranks, centers, breaks and probability densities"""
+		- ranks, percentiles, bins and probability densities"""
 
-	if mode == 'linear':
-		centers, breaks = defineLinearBins(sample,n_lin_bins,vmin,vmax)
-		ranks = computePercentileRanksFromBins(sample,centers)
-	elif mode == 'log':
-		centers, breaks = defineLogBins(sample,n_bins_per_decade,vmin,vmax)
-		ranks = computePercentileRanksFromBins(sample,centers)
-	elif mode == 'invlogQ':
-		ranks = getInvLogRanks(sample.size,n_pts_per_bin,n_bins_per_decade)
-		ranks, centers, breaks = computePercentilesAndBinsFromRanks(sample,ranks)
-	else:
-		print("Unknown mode chosen:", mode)
-		return
+	cn = getArrayType(sample)
 
-	if isinstance(sample,np.ndarray):
-		densities, edges = np.histogram(sample,bins=breaks,density=True)
-	elif isinstance(sample,da.core.Array):
-		densities, edges = da.histogram(sample,bins=breaks,density=True)
-	else:	
-		# raise ValueError
-		print("Unvalid data type:", type(sample))
-		return
+	ranks, percentiles, bins = ranksPercentilesAndBins(sample,mode,n_pts_per_bin,
+		n_bins_per_decade,n_lin_bins,vmin,vmax)
 
-	return ranks, centers, breaks, densities
+	densities, edges = cn.histogram(sample,bins=bins,density=True)
+
+	return ranks, percentiles, bins, densities
 
 ## Compute 2D bins, ranks and probability densities with transformations along axes
 def compute2dDensities(sample1,sample2,mode1='linear',mode2='linear',\
@@ -215,7 +238,40 @@ def compute2dDensities(sample1,sample2,mode1='linear',mode2='linear',\
 	"""-- Yet to implement --
 	Arguments: see function compute1dDensities
 	Returns:
-		- ranks1, centers1, breaks1, ranks2, centers2, breaks2, densities2D"""
+		- ranks1, percentiles1, bins1, ranks2, percentiles2, bins2, densities2D"""
+
+	cn = getArrayType(sample1)
+	
+	ranks1, percentiles1, bins1 = ranksPercentilesAndBins(sample1,mode1,
+		n_pts_per_bin,n_bins_per_decade,n_lin_bins,vmin1,vmax1,crop=False)
+
+	ranks2, percentiles2, bins2 = ranksPercentilesAndBins(sample2,mode2,
+		n_pts_per_bin,n_bins_per_decade,n_lin_bins,vmin2,vmax2,crop=False)
+	
+	densities, edges1, edges2 = cn.histogram2d(x=sample1,y=sample2,
+		bins=(bins1,bins2),normed=False)
+
+	return ranks1, percentiles1, bins1, ranks2, percentiles2, bins2, densities
+
+## Normalization matrix for 2D probability densities
+def normalize2dDensity(N1,N2,N_total):
+    
+    """Returns the D*N_total, where D is the expected 2D density
+    in the case where the two variables are independent.
+    Arguments:
+    	- N1,N2 are 1D-arrays containing the number of points in each bin for
+    	variables x and y
+    	- N_total is the total sample size of the problem"""
+
+    # compute expected number of points if the variables
+    # were statistically independent
+    N1_2d, N2_2d = np.meshgrid(N1[:-1],N2[:-1])
+    N_prod = N1_2d*N2_2d
+    # normalization matrix
+    norm_factor = N_prod/(np.nansum(N_prod))*N_total
+    norm_factor[norm_factor == 0] = np.nan
+    
+    return norm_factor
 
 ## Get index of rank in list of ranks
 def indexOfRank(rank,ranks):
@@ -234,7 +290,7 @@ def getStencilAtRank(rank,ranks,bins,Y):
 
 	cn = getArrayType(Y)
 	i_Q = indexOfRank(rank,ranks)
-	mask_Q = cn.logical_and(Y > bins[i_Q-1],Y<= bins[i_Q])
+	mask_Q = cn.logical_and(Y > bins[i_Q-1],Y <= bins[i_Q])
 
 	return mask_Q
 
@@ -261,6 +317,20 @@ def adjustRanks(Y,Yranks,ranks_ref):
 
 	return Y_adj
 
+def adjustBinsOnRanks(bins,ranks,ranks_ref):
+
+	Q_min = np.min(ranks_ref)
+	Q_max = np.max(ranks_ref)
+	bins_adj = np.array([np.nan]*(ranks_ref.size+1))
+
+	for Q in ranks:
+		if Q > Q_min and Q < Q_max:
+			iQ = indexOfRank(Q,ranks_ref)
+			iQ_bins = indexOfRank(Q,ranks)
+			bins_adj[iQ] = bins[iQ_bins]
+
+	return bins_adj
+
 ## Get rank locations from rank, ranks and bins, or rank and ranks_locations
 def getRankLocations(rank,Y,ranks=None,bins=None,rank_locations=None):
 
@@ -279,7 +349,7 @@ def getRankLocations(rank,Y,ranks=None,bins=None,rank_locations=None):
 		stencil_Q = da.map_blocks(lambda x: getStencilAtRank(rank,
 			ranks,bins,x),Y,dtype=bool)
 	# ... and store it
-	rank_locations[rank_id] = stencil_Q
+	# rank_locations[rank_id] = stencil_Q
 
 	return stencil_Q
 

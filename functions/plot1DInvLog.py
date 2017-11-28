@@ -10,11 +10,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 from math import log10,ceil
 from matplotlib.patches import Polygon
+from matplotlib.colors import LogNorm
 
 
 #---- Functions ----#
 
-def transformXaxisIL(ax,x):
+def transformXaxisIL(ax,x,offset=0):
     
     # reverse x-axis
     ax.invert_xaxis()
@@ -23,12 +24,27 @@ def transformXaxisIL(ax,x):
     n = ceil(log10(x.max()))
     N = len(labels)
     for i in range(1,N):
-        labels[-n+i-4] = str(100*(1-10**(-n+i-1)))
+        labels[-n+i-4+offset] = str(100*(1-10**(-n+i-1)))
         if -n+i-1 == 0:
             break
     ax.set_xticklabels(labels)
 
-def subplotRanksILog(ax,ranks,y,col=None,ltype=None,linewidth=None,alpha=None,transformX=False):
+def transformYaxisIL(ax,y,offset=0):
+    
+    # reverse y-axis
+    ax.invert_yaxis()
+    # rename ticks
+    labels = [item.get_text() for item in ax.get_yticklabels()]
+    n = ceil(log10(y.max()))
+    N = len(labels)
+    for i in range(1,N):
+        labels[-n+i-4+offset] = str(100*(1-10**(-n+i-1)))
+        if -n+i-1 == 0:
+            break
+    ax.set_yticklabels(labels)
+
+def subplotRanksILog(ax,ranks,y,col=None,ltype=None,linewidth=None,alpha=None,
+    transformX=False):
     
     ax.set_xscale('log')
 
@@ -108,4 +124,15 @@ def addZeroLine(ax,x):
     ax_line.yaxis.set_ticks_position('none')
     ax_line.yaxis.set_ticklabels('')
     ax_line.set_ylim(ax.get_ylim())
+
+def add1to1Line(ax):
+
+    x = ax.get_xlim()
+    y = ax.get_ylim()
+
+    xmin = min(x[0],y[0])
+    xmax = max(x[1],y[1])
+
+    ax.plot([xmin,xmax],[xmin,xmax],'k',lw=1)
+
 

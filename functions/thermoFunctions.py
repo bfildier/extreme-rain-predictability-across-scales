@@ -160,7 +160,7 @@ def moistAdiabaticLapseRateSimple(temp,pres,spechum):
 
 ## Moist adiabatic temperature profile on sigma-levels from values of 
 ## surface temperature, and atmospheric pressure and soecific humidity
-def moistAdiabatSimple(surftemp,pres,spechum,levdim=0,reverse=False):
+def moistAdiabatSimple(surftemp,pres,spechum=None,relhum=None,levdim=0,reverse=False):
 
     """Vertically integrate the analytic expression for the moist adiabatic 
     lapse rate from surface values (K).
@@ -181,16 +181,36 @@ def moistAdiabatSimple(surftemp,pres,spechum,levdim=0,reverse=False):
         configurations haven't been tested.
     """
 
+    if levdim != 0:
+        if spechum is not None:
+            temp = moistAdiabatSimple(surftemp,
+                                  np.moveaxis(preslevdim,0),
+                                  spechum=np.moveaxis(spechum,levdim,0),
+                                  levdim=0,
+                                  reverse=reverse)
+            return np.moveaxis(temp,0,levdim)
+        elif relhum is not None:
+            temp = moistAdiabatSimple(surftemp,
+                                  np.moveaxis(pres,levdim,0),
+                                  relhum=np.moveaxis(relhum,levdim,0),
+                                  levdim=0,
+                                  reverse=reverse)
+            return np.moveaxis(temp,0,levdim)
+
     cn = getArrayType(pres)
 
     if reverse:
-        return cn.flipud(moistAdiabatSimple(surftemp,
+        if spechum is not None:
+            return cn.flipud(moistAdiabatSimple(surftemp,
                                             cn.flipud(pres),
-                                            cn.flipud(spechum),
+                                            spechum=cn.flipud(spechum),
+                                            levdim=levdim))
+        elif relhum is not None:
+            return cn.flipud(moistAdiabatSimple(surftemp,
+                                            cn.flipud(pres),
+                                            relhum=cn.flipud(relhum),
                                             levdim=levdim))
 
-    # sh_shape = spechum.shape
-    # ts_shape = surftemp.shape
     p_shape = pres.shape
     ndims = len(pres.shape)
     ind_low = [slice(None)]*ndims
@@ -204,15 +224,16 @@ def moistAdiabatSimple(surftemp,pres,spechum,levdim=0,reverse=False):
     for k in range(1,Nlev):
         ind_low[levdim] = k-1
         ind_high[levdim] = k
+        if spechum is None:
+            spechum_ind_low = saturationSpecificHumidity(temp[ind_low],
+                pres[ind_low]) * relhum[ind_low]
+        else:
+            spechum_ind_low = spechum[ind_low]
         dTdp = moistAdiabaticLapseRateSimple(temp[ind_low],
                                              pres[ind_low],
-                                             spechum[ind_low])
+                                             spechum=spechum_ind_low)
         dp = cn.subtract(pres[ind_high],pres[ind_low])
         temp[ind_high] = cn.add(temp[ind_low],cn.multiply(dTdp,dp))
-
-    # # Convert to dask.array # Unnecessary when usign with map_blocks
-    # if pres.__class__ == da.core.Array:
-    #     temp = da.from_array(temp,chunks=pres.chunks)
 
     return temp
 

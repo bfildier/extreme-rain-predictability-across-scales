@@ -6,8 +6,12 @@
 
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib import patchess
+from matplotlib import patches
+from matplotlib.colors import LogNorm
+import warnings
 
+#---- Own modules ----#
+from plot1DInvLog import *
 
 
 #---- Functions ----#
@@ -64,3 +68,52 @@ def addHatchBelowThreshold(ax,var_ref,threshold):
                fill=True, snap=False, linewidth=0,color='white'))
             ax.add_patch(patches.Rectangle((i-0.5, j-0.5), 1, 1, 
                hatch='//', fill=False, snap=False, linewidth=0.1,color='gray'))
+
+
+
+def subplot2DRanksILog(ax,ranksX,ranksY,Z,cmap=plt.cm.RdBu_r,alpha=None,
+	transformX=False,transformY=False):
+
+	warnings.filterwarnings("ignore", category=RuntimeWarning)
+
+	ax.set_xscale('log')
+	ax.set_yscale('log')
+
+	# define axes
+	x = np.flipud(1./(1-ranksX/100.))
+	y = np.flipud(1./(1-ranksY/100.))
+	X,Y = np.meshgrid(x,y)
+
+	def getRangeAndMask(Z):
+		# mask nan values
+		m = np.ma.masked_where(np.isnan(Z),Z)
+		# compute display range
+		expmax = int(np.log10(np.nanmax(Z)))
+		vmax = 10**expmax
+		vmin = 1/vmax
+		return m,vmin,vmax
+
+	# plot
+	if isinstance(Z,list):
+		for i in range(len(y)):
+			a = alpha[i] if alpha is not None else 1
+			cm = cmap[i] if isinstance(cmap,list) else cmap
+			m,vmin,vmax = getRangeAndMask(Z[i])
+			im = ax.pcolorfast(X,Y,m, cmap=cmap,alpha=alpha,
+				norm=LogNorm(vmin=vmin, vmax=vmax))
+	else:
+		# warnings.filterwarnings("ignore", category=RuntimeWarning)
+		m,vmin,vmax = getRangeAndMask(Z)
+		im = ax.pcolorfast(X,Y,m, cmap=cmap,alpha=alpha,
+			norm=LogNorm(vmin=vmin, vmax=vmax))
+
+	# colorbar
+	cb = plt.colorbar(im,ticks=[vmin,1,vmax])
+	cb.ax.set_yticklabels([str(vmin), '1', str(vmax)])
+
+	# transform x-axis
+	if transformX:
+		transformXaxisIL(ax,x,offset=1)
+	if transformY:
+		transformYaxisIL(ax,y,offset=1)
+
