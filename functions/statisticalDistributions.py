@@ -288,6 +288,8 @@ def getStencilAtRank(rank,ranks,bins,Y):
 	"""Returns a numpy.array of bools corresponding to percentile rank.
 	It computes the corresponding rank index and bin."""
 
+	warnings.filterwarnings("ignore", category=RuntimeWarning)
+	
 	cn = getArrayType(Y)
 	i_Q = indexOfRank(rank,ranks)
 	mask_Q = cn.logical_and(Y > bins[i_Q-1],Y <= bins[i_Q])
