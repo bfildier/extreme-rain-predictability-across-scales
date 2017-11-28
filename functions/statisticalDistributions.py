@@ -265,7 +265,7 @@ def normalize2dDensity(N1,N2,N_total):
 
     # compute expected number of points if the variables
     # were statistically independent
-    N1_2d, N2_2d = np.meshgrid(N1[:-1],N2[:-1])
+    N1_2d, N2_2d = np.meshgrid(N1,N2)
     N_prod = N1_2d*N2_2d
     # normalization matrix
     norm_factor = N_prod/(np.nansum(N_prod))*N_total
