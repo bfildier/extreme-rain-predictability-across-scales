@@ -317,6 +317,26 @@ def adjustRanks(Y,Yranks,ranks_ref):
 
 	return Y_adj
 
+def adjust2dOnRanks(Z,Xranks,Yranks,Xranks_ref,Yranks_ref):
+
+	Q_min_X = np.min(Xranks_ref)
+	Q_max_X = np.max(Xranks_ref)
+	Q_min_Y = np.min(Yranks_ref)
+	Q_max_Y = np.max(Yranks_ref)
+	Z_adj = np.array([[np.nan]*Yranks_ref.size]*Xranks_ref.size)
+
+	for QX in Xranks:
+		if QX > Q_min_X and QX < Q_max_X:
+			iQX = indexOfRank(QX,Xranks_ref)
+			iQX_Z = indexOfRank(QX,Xranks)
+			for QY in Yranks:
+				if QY > Q_min_Y and QY < Q_max_Y:
+					iQY = indexOfRank(QY,Yranks_ref)
+					iQY_Z = indexOfRank(QY,Yranks)
+					Z_adj[iQX,iQY] = Z[iQX_Z,iQY_Z]
+
+	return Z_adj
+
 def adjustBinsOnRanks(bins,ranks,ranks_ref):
 
 	Q_min = np.min(ranks_ref)
