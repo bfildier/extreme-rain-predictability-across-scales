@@ -104,7 +104,7 @@ def subplot2DRanksILog(ax,ranksX,ranksY,Z,cmap=plt.cm.RdBu_r,alpha=None,
 	else:
 		# warnings.filterwarnings("ignore", category=RuntimeWarning)
 		m,vmin,vmax = getRangeAndMask(Z)
-		im = ax.pcolorfast(X,Y,m, cmap=cmap,alpha=alpha,
+		im = ax.pcolor(X,Y,m, cmap=cmap,alpha=alpha,
 			norm=LogNorm(vmin=vmin, vmax=vmax))
 
 	# colorbar
