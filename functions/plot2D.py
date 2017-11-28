@@ -99,7 +99,7 @@ def subplot2DRanksILog(ax,ranksX,ranksY,Z,cmap=plt.cm.RdBu_r,alpha=None,
 			a = alpha[i] if alpha is not None else 1
 			cm = cmap[i] if isinstance(cmap,list) else cmap
 			m,vmin,vmax = getRangeAndMask(Z[i])
-			im = ax.pcolorfast(X,Y,m, cmap=cmap,alpha=alpha,
+			im = ax.pcolor(X,Y,m, cmap=cmap,alpha=alpha,
 				norm=LogNorm(vmin=vmin, vmax=vmax))
 	else:
 		# warnings.filterwarnings("ignore", category=RuntimeWarning)
