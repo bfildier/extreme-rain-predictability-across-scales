@@ -22,6 +22,8 @@ enddate=185105010000
 #enddate=185005020000
 daskarray=False
 tracktime=True
+bootstrap=True
+plotAll2dPDFs=True
 compsets='FSPCAMm_AMIP'
 #compsets='FAMIPC5'
 experiments='piControl'
@@ -51,6 +53,8 @@ cd $SCRIPTDIR
 sed -i'' 's/(workdir)/(os.path.dirname(workdir))/g' ${template_analysis_script}
 sed -i'' 's/^daskarray =.*/daskarray = '${daskarray}'/' ${template_analysis_script}
 sed -i'' 's/^tracktime =.*/tracktime = '${tracktime}'/' ${template_analysis_script}
+sed -i'' 's/^bootstrap =.*/bootstrap = '${bootstrap}'/' ${template_analysis_script}
+sed -i'' 's/^plotAll2dPDFs =.*/plotAll2dPDFs = '${plotAll2dPDFs}'/' ${template_analysis_script}
 
 # Change run options in batch script
 if [ "$runmode" == "debug" ];
