@@ -42,8 +42,8 @@ runmode="regular"
 ##-- Main --##
 
 # Template scripts
-./ipynb2py36.sh analyzePointWiseScalingOmega500TsPs_template.ipynb $SCRIPTDIR/${template_nameroot}
-cp sbatch_template_analyzePointWiseScalingOmega500TsPs.sbatch $SCRIPTDIR/${template_batch_script}
+./ipynb2py36.sh analyzePointWiseScaling_template.ipynb $SCRIPTDIR/${template_nameroot}
+cp sbatch_analyzePointWiseScaling_template.sbatch $SCRIPTDIR/${template_batch_script}
 
 cd $SCRIPTDIR
 

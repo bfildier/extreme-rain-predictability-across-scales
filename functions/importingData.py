@@ -165,7 +165,7 @@ def getSimulationValues(varid,inputdir,time_stride='day',resolution='dx',
 	if not isValidHandle(handle,time_stride,settings):
 		return 
     
-	# Import data
+	# Time resolution factor
 	dt_ratio = timeResolutionRatio(time_stride,settings[handle][0])
     
     # Abort if there is not enough data
@@ -174,38 +174,54 @@ def getSimulationValues(varid,inputdir,time_stride='day',resolution='dx',
 			  time_stride)
 		return None
 
-	vals_within_dt = []
-	values_list = []
+	# Initialize
+	if isinstance(varid,str):
+		varids = [varid]
+	else:
+		varids = varid
+	vals_within_dt = {}
+	values_list = {}
+	for v in varids:
+		vals_within_dt[v] = []
+		values_list[v] = []
+	# Get all data
 	for file in inputfiles:
 		fh = Dataset(file,'r')
-		if varid in fh.variables.keys():
-			vals_within_dt.append(fh.variables[varid][:])
-		if len(vals_within_dt) == dt_ratio:
-			values_list.append(cn.mean(cn.concatenate(vals_within_dt,axis=0),
-									   axis=0,
-									   keepdims=True))
-			vals_within_dt = []
+		for v in varids:
+			if v in fh.variables.keys():
+				vals_within_dt[v].append(fh.variables[v][:])
+			if len(vals_within_dt[v]) == dt_ratio:
+				values_list[v].append(cn.mean(cn.concatenate(vals_within_dt[v],axis=0),
+										   axis=0,
+										   keepdims=True))
+				vals_within_dt[v] = []
 		fh.close()
 
 	# Abort if no inputfile contains varid
-	if len(values_list) == 0:
-		print("%s not found in history files"%varid)
-		return 
+	for v in varids:
+		if len(values_list[v]) == 0:
+			print("%s not found in history files"%v)
+			# return 
     
 	# If found
 	# print("%s found in history files"%varid)
 	# print("Importing %s from %d files\n  from\n  %s\n  to\n  %s"%
 	# 	(varid,len(inputfiles),inputfiles[0],inputfiles[-1]))
 	print("Importing %s from %d history files between %s and %s"%
-		(varid,len(inputfiles),inputfiles[0].split('.')[-2],
+		(', '.join(varids),len(inputfiles),inputfiles[0].split('.')[-2],
 			inputfiles[-1].split('.')[-2]))
-	values = cn.concatenate(values_list,axis=0)
-	# Reduce to tropics
-	values = reduceDomain(values,subsetname,inputfiles[0],varid)
-	# Coarsen to final resolution
-	values = coarsenResolution(values,resolution)
+	values = {}
+	for v in varids:
+		values[v] = cn.concatenate(values_list[v],axis=0)
+		# Reduce to tropics
+		values[v] = reduceDomain(values[v],subsetname,inputfiles[0],v)
+		# Coarsen to final resolution
+		values[v] = coarsenResolution(values[v],resolution)
 
-	return values
+	if isinstance(varid,str):
+		return values[varid]
+	else:
+		return tuple(values.values())
 
 # Main function to extract data values from processed files or history files
 def getValues(varid,compset,subsetname,experiment,time_stride,resolution,
@@ -226,19 +242,30 @@ def getValues(varid,compset,subsetname,experiment,time_stride,resolution,
 	# Try history files in case this is an original varid
 	values = getSimulationValues(varid,inputdir,time_stride,resolution,None,
 		dates,subsetname,handle,daskarray=daskarray)
-	if values is not None:
-		return values
+	if isinstance(varid,str):
+		if values is not None:
+			return values
+	else:
+		if len(values) == len(varid):
+			return values
 
 	# Now look at preprocessed variables
 	indir_proc_name = "inputdir_processed_%s"%time_stride
 	if indir_proc_name in locals().keys():
 		inputdir_processed = locals()[indir_proc_name]
-		values = getProcessedValues(varid,inputdir_processed,inputfiles=None,
-			dates=dates,daskarray=daskarray)
+		if isinstance(varid,str):
+			values = getProcessedValues(v,inputdir_processed,inputfiles=None,
+				dates=dates,daskarray=daskarray)
+		else:
+			values = [getProcessedValues(v,inputdir_processed,inputfiles=None,
+				dates=dates,daskarray=daskarray) for v in varid]
 	else:
 		print("Time stride %s not accessible from processed files"%time_stride)
 
-	return values
+	if isinstance(varid,str):
+		return values
+	else:
+		return tuple(values)
 
 ## Obtains the 'computeP' function for a given simulation
 def getPressureCoordinateFunction(input_lev_file,levdim=1):

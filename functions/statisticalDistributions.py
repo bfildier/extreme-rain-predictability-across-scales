@@ -312,7 +312,7 @@ def adjustRanks(Y,Yranks,ranks_ref):
 	Y_adj = np.array([np.nan]*ranks_ref.size)
 
 	for Q in Yranks:
-		if Q > Q_min and Q < Q_max:
+		if Q > Q_min and Q <= Q_max:
 			iQ = indexOfRank(Q,ranks_ref)
 			iQ_Y = indexOfRank(Q,Yranks)
 			Y_adj[iQ] = Y[iQ_Y]
@@ -328,11 +328,11 @@ def adjust2dOnRanks(Z,Xranks,Yranks,Xranks_ref,Yranks_ref):
 	Z_adj = np.array([[np.nan]*Yranks_ref.size]*Xranks_ref.size)
 
 	for QX in Xranks:
-		if QX > Q_min_X and QX < Q_max_X:
+		if QX > Q_min_X and QX <= Q_max_X:
 			iQX = indexOfRank(QX,Xranks_ref)
 			iQX_Z = indexOfRank(QX,Xranks)
 			for QY in Yranks:
-				if QY > Q_min_Y and QY < Q_max_Y:
+				if QY > Q_min_Y and QY <= Q_max_Y:
 					iQY = indexOfRank(QY,Yranks_ref)
 					iQY_Z = indexOfRank(QY,Yranks)
 					Z_adj[iQX,iQY] = Z[iQX_Z,iQY_Z]
@@ -346,12 +346,35 @@ def adjustBinsOnRanks(bins,ranks,ranks_ref):
 	bins_adj = np.array([np.nan]*(ranks_ref.size+1))
 
 	for Q in ranks:
-		if Q > Q_min and Q < Q_max:
+		if Q > Q_min and Q <= Q_max:
 			iQ = indexOfRank(Q,ranks_ref)
 			iQ_bins = indexOfRank(Q,ranks)
 			bins_adj[iQ] = bins[iQ_bins]
 
 	return bins_adj
+
+def compute2dStatsILOnRefRanks(var1,var2,ranks_ref,n_pts_per_bin=nppb,
+	n_bins_per_decade=nbpd):
+
+    sample1 = var1.flatten()
+    sample2 = var2.flatten()
+
+    mode1 = 'invlogQ'
+    mode2 = 'invlogQ'
+
+    ranks1, percentiles1, bins1, ranks2, percentiles2, bins2, density2D =\
+        compute2dDensities(sample1,sample2,mode1,mode2,
+        	n_pts_per_bin=n_pts_per_bin,n_bins_per_decade=n_bins_per_decade)
+
+    density2D = adjust2dOnRanks(density2D,ranks1,ranks2,ranks_ref,ranks_ref)
+    bins1 = adjustBinsOnRanks(bins1,ranks1,ranks_ref)
+    bins2 = adjustBinsOnRanks(bins2,ranks2,ranks_ref)
+    percentiles1 = adjustRanks(percentiles1,ranks1,ranks_ref)
+    percentiles2 = adjustRanks(percentiles2,ranks2,ranks_ref)
+    ranks1 = ranks_ref.copy()
+    ranks2 = ranks_ref.copy()
+    
+    return ranks1, percentiles1, bins1, ranks2, percentiles2, bins2, density2D
 
 ## Get rank locations from rank, ranks and bins, or rank and ranks_locations
 def getRankLocations(rank,Y,ranks=None,bins=None,rank_locations=None):
@@ -380,14 +403,23 @@ def sampleSizeAtYRank(rank,Y,ranks=None,bins=None,rank_locations=None):
 
 	# Get rank locations
 	stencil_Q = getRankLocations(rank,Y,ranks,bins,rank_locations)
-	# Return 0 if empty
-	if stencil_Q.sum() == 0:
-		return 0
-	# Otherwise count
-	if Y.__class__ == np.ndarray:
-		return stencil_Q.sum()
-	elif Y.__class__ == da.core.Array:
-		return (stencil_Q.sum()).compute()
+	# Return size
+	return sampleSizeInStencil(stencil_Q)
+
+## Mean of X at locations of bins of Y1,Y2
+def sampleSizeAtY1Y2Ranks(Y1rank,Y2rank,Y1,Y2,
+	Y1ranks=None,Y1bins=None,Y1rank_locations=None,
+	Y2ranks=None,Y2bins=None,Y2rank_locations=None):
+	
+	cn = getArrayType(Y1)
+
+	# Get rank locations
+	stencil_Q_Y1 = getRankLocations(Y1rank,Y1,Y1ranks,Y1bins,Y1rank_locations)
+	stencil_Q_Y2 = getRankLocations(Y2rank,Y2,Y2ranks,Y2bins,Y2rank_locations)
+	stencil_Q = cn.logical_and(stencil_Q_Y1,stencil_Q_Y2)
+	
+	# Return size
+	return sampleSizeInStencil(stencil_Q)
 
 ## Sample size at all ranks
 def sampleSizeAtAllRanks(targetranks,Y,ranks,bins=None,rank_locations=None):
@@ -398,22 +430,63 @@ def sampleSizeAtAllRanks(targetranks,Y,ranks,bins=None,rank_locations=None):
 		out[iQ] = sampleSizeAtYRank(rank,Y,ranks,bins,rank_locations)
 	return out
 
+## Sample size inside percentile bins of Y1,Y2
+def sampleSizeAtAllY1Y2Ranks(Y1targetranks,Y2targetranks,Y1,Y2,
+	Y1ranks=None,Y1bins=None,Y1rank_locations=None,
+	Y2ranks=None,Y2bins=None,Y2rank_locations=None):
+
+	out = np.array([[np.nan]*Y2ranks.size]*Y1ranks.size)
+	for Y1rank in Y1targetranks:
+		iQ1 = indexOfRank(Y1rank,Y1ranks)
+		for Y2rank in Y2targetranks:
+			iQ2 = indexOfRank(Y2rank,Y2ranks)
+			out[iQ1,iQ2] = sampleSizeAtY1Y2Ranks(Y1rank,Y2rank,Y1,Y2,
+				Y1ranks,Y1bins,Y1rank_locations,
+				Y2ranks,Y2bins,Y2rank_locations)
+	return out
+
+def sampleSizeInStencil(stencil):
+
+	cn = getArrayType(stencil)
+	
+	return cn.nansum(stencil)
+
+def meanXInStencil(X,stencil):
+
+	cn = getArrayType(X)
+	# Return nan if empty
+	if stencil.sum() == 0:
+		return np.nan
+	# # Return nan if only nans
+	# if np.isnan(X[stencil]).sum() == stencil.sum():
+	# 	return np.nan
+	# Otherwise compute nanmean
+	return cn.nanmean(X[stencil])
+
 ## Mean of X at locations of bins of Y
 def meanXAtYRank(rank,X,Y,ranks=None,bins=None,rank_locations=None):
 
 	# Get rank locations
 	stencil_Q = getRankLocations(rank,Y,ranks,bins,rank_locations)
-	# Return nan if empty
-	if stencil_Q.sum() == 0:
-		return np.nan
-	# Return nan if only nans
-	if np.isnan(X[stencil_Q]).sum() == stencil_Q.sum():
-		return np.nan
-	# Otherwise compute nanmean
-	if Y.__class__ == np.ndarray:
-		return np.nanmean(X[stencil_Q])
-	elif Y.__class__ == da.core.Array:
-		return da.nanmean(X[stencil_Q]).compute()
+
+	# Return mean
+	return meanXInStencil(X,stencil_Q)
+	
+
+## Mean of X at locations of bins of Y1,Y2
+def meanXAtY1Y2Ranks(Y1rank,Y2rank,X,Y1,Y2,
+	Y1ranks=None,Y1bins=None,Y1rank_locations=None,
+	Y2ranks=None,Y2bins=None,Y2rank_locations=None):
+	
+	cn = getArrayType(X)
+
+	# Get rank locations
+	stencil_Q_Y1 = getRankLocations(Y1rank,Y1,Y1ranks,Y1bins,Y1rank_locations)
+	stencil_Q_Y2 = getRankLocations(Y2rank,Y2,Y2ranks,Y2bins,Y2rank_locations)
+	stencil_Q = cn.logical_and(stencil_Q_Y1,stencil_Q_Y2)
+	
+	# Return mean
+	return meanXInStencil(X,stencil_Q)
 
 ## Mean of X within given percentile bins of Y
 def meanXAtAllYRanks(targetranks,X,Y,ranks,bins=None,rank_locations=None):
@@ -422,6 +495,21 @@ def meanXAtAllYRanks(targetranks,X,Y,ranks,bins=None,rank_locations=None):
 	for rank in targetranks:
 		iQ = indexOfRank(rank,ranks)
 		out[iQ] = meanXAtYRank(rank,X,Y,ranks,bins,rank_locations)
+	return out
+
+## Mean of X within given percentile bins of Y1,Y2
+def meanXAtAllY1Y2Ranks(Y1targetranks,Y2targetranks,X,Y1,Y2,
+	Y1ranks=None,Y1bins=None,Y1rank_locations=None,
+	Y2ranks=None,Y2bins=None,Y2rank_locations=None):
+
+	out = np.array([[np.nan]*Y2ranks.size]*Y1ranks.size)
+	for Y1rank in Y1targetranks:
+		iQ1 = indexOfRank(Y1rank,Y1ranks)
+		for Y2rank in Y2targetranks:
+			iQ2 = indexOfRank(Y2rank,Y2ranks)
+			out[iQ1,iQ2] = meanXAtY1Y2Ranks(Y1rank,Y2rank,X,Y1,Y2,
+				Y1ranks,Y1bins,Y1rank_locations,
+				Y2ranks,Y2bins,Y2rank_locations)
 	return out
 
 ## Compute mean vertical profile of X within percentile bins of Y
@@ -436,31 +524,41 @@ def meanXProfileAtYRank(rank,X,Y,ranks,bins=None,rank_locations=None):
 	return computeTimeHorizontalMean(X,stencil_Q,is_3D=True)
 
 ## Variance of X at locations of bins of Y
-def varXAtYRank(rank,X,Y,ranks=None,bins=None,rank_locations=None):
+def varXAtYRank(rank,X,Y,ranks=None,bins=None,rank_locations=None,
+	random_fraction=1):
 
 	# Get rank locations
 	stencil_Q = getRankLocations(rank,Y,ranks,bins,rank_locations)
+
+	# Define sample size of random subset
+	Ntot = stencil_Q.sum()
+	Nsub = int(Ntot*random_fraction)
+
 	# Return nan if empty or singleton
-	if stencil_Q.sum() <= 1:
+	if Nsub <= 1:
 		return np.nan
+	# Define random subset of values
+	ind = np.random.choice(Ntot,Nsub,replace=False)
 	# Return nan if number of non nans is too small
-	if stencil_Q.sum() - np.isnan(X[stencil_Q]).sum() <= 1:
+	if Nsub - np.isnan(X[stencil_Q][ind]).sum() <= 1:
 		return np.nan
 	# Otherwise compute nanvar
 	if Y.__class__ == np.ndarray:
-		return np.nanvar(X[stencil_Q])
+		return np.nanvar(X[stencil_Q][ind])
 	elif Y.__class__ == da.core.Array:
 		with warnings.catch_warnings():
 			warnings.simplefilter("ignore")
-			return da.nanvar(X[stencil_Q]).compute()
+			return da.nanvar(X[stencil_Q][ind]).compute()
 
 ## Variance of X within given precentile bins of Y
-def varXAtAllYRanks(targetranks,X,Y,ranks,bins=None,rank_locations=None):
+def varXAtAllYRanks(targetranks,X,Y,ranks,bins=None,rank_locations=None,
+	random_fraction=1):
 
 	out = np.array([np.nan]*ranks.size)
 	for rank in targetranks:
 		iQ = indexOfRank(rank,ranks)
-		out[iQ] = varXAtYRank(rank,X,Y,ranks,bins,rank_locations)
+		out[iQ] = varXAtYRank(rank,X,Y,ranks,bins,rank_locations,
+			random_fraction=random_fraction)
 	return out
 
 ## Covariance of X1,X2 at locations of bins of Y

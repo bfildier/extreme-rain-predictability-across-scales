@@ -72,7 +72,7 @@ def addHatchBelowThreshold(ax,var_ref,threshold):
 
 
 def subplot2DRanksILog(ax,ranksX,ranksY,Z,cmap=plt.cm.RdBu_r,alpha=None,
-	transformX=False,transformY=False):
+	transformX=False,transformY=False,range_type='sym_to_one',vmin=None,vmax=None):
 
 	warnings.filterwarnings("ignore", category=RuntimeWarning)
 
@@ -84,13 +84,21 @@ def subplot2DRanksILog(ax,ranksX,ranksY,Z,cmap=plt.cm.RdBu_r,alpha=None,
 	y = np.flipud(1./(1-ranksY/100.))
 	X,Y = np.meshgrid(x,y)
 
-	def getRangeAndMask(Z):
+	def getRangeAndMask(Z,vmin,vmax):
 		# mask nan values
 		m = np.ma.masked_where(np.isnan(Z),Z)
 		# compute display range
-		expmax = int(np.log10(np.nanmax(Z)))
-		vmax = 10**expmax
-		vmin = 1/vmax
+		if vmin is None or vmax is None:
+			if range_type == 'sym_to_one':
+				expmax = int(np.log10(np.nanmax(Z)))
+				vmax = 10**expmax
+				vmin = 1/vmax
+			elif range_type == 'full':
+				vmin = np.nanmin(Z)
+				vmax = np.nanmax(Z)
+			elif range_type == 'full_positive':
+				vmin = np.nanmin(Z[Z>0])
+				vmax = np.nanmax(Z)
 		return m,vmin,vmax
 
 	# plot
@@ -98,12 +106,12 @@ def subplot2DRanksILog(ax,ranksX,ranksY,Z,cmap=plt.cm.RdBu_r,alpha=None,
 		for i in range(len(y)):
 			a = alpha[i] if alpha is not None else 1
 			cm = cmap[i] if isinstance(cmap,list) else cmap
-			m,vmin,vmax = getRangeAndMask(Z[i])
+			m,vmin,vmax = getRangeAndMask(Z[i],vmin,vmax)
 			im = ax.pcolor(X,Y,m, cmap=cmap,alpha=alpha,
 				norm=LogNorm(vmin=vmin, vmax=vmax))
 	else:
 		# warnings.filterwarnings("ignore", category=RuntimeWarning)
-		m,vmin,vmax = getRangeAndMask(Z)
+		m,vmin,vmax = getRangeAndMask(Z,vmin,vmax)
 		im = ax.pcolor(X,Y,m, cmap=cmap,alpha=alpha,
 			norm=LogNorm(vmin=vmin, vmax=vmax))
 
