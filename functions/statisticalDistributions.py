@@ -111,6 +111,9 @@ def findExtremumValues(sample,vmin=None,vmax=None):
 
 	"""Argument: 1D numpy or dask array of data values."""
 
+	if sample.size == 0:
+		return np.nan, np.nan
+
 	# Find minimum value
 	if vmin is None:
 		if isinstance(sample,np.ndarray):
