@@ -68,7 +68,8 @@ def computePercentilesAndBinsFromRanks(sample,ranks,crop=True):
 		- breaks (histogram bin edges)"""
 
 	if isinstance(sample,np.ndarray):
-		centers = np.percentile(sample,ranks)
+		sample_no_nan = sample[np.logical_not(np.isnan(sample))]
+		centers = np.percentile(sample_no_nan,ranks)
 	elif isinstance(sample,da.core.Array):
 		centers = da.percentile(sample,ranks).compute()
 	breaks = np.convolve(centers,[0.5,0.5],mode='valid')
@@ -247,7 +248,7 @@ def compute2dDensities(sample1,sample2,mode1='linear',mode2='linear',\
 
 	ranks2, percentiles2, bins2 = ranksPercentilesAndBins(sample2,mode2,
 		n_pts_per_bin,n_bins_per_decade,n_lin_bins,vmin2,vmax2,crop=False)
-	
+
 	densities, edges1, edges2 = cn.histogram2d(x=sample1,y=sample2,
 		bins=(bins1,bins2),normed=False)
 
@@ -398,7 +399,7 @@ def getRankLocations(rank,Y,ranks=None,bins=None,rank_locations=None):
 
 	return stencil_Q
 
-## Mean of X at locations of bins of Y
+## Sample size at locations of bins of Y
 def sampleSizeAtYRank(rank,Y,ranks=None,bins=None,rank_locations=None):
 
 	# Get rank locations
@@ -406,7 +407,7 @@ def sampleSizeAtYRank(rank,Y,ranks=None,bins=None,rank_locations=None):
 	# Return size
 	return sampleSizeInStencil(stencil_Q)
 
-## Mean of X at locations of bins of Y1,Y2
+## Sample size at locations of bins of Y1,Y2
 def sampleSizeAtY1Y2Ranks(Y1rank,Y2rank,Y1,Y2,
 	Y1ranks=None,Y1bins=None,Y1rank_locations=None,
 	Y2ranks=None,Y2bins=None,Y2rank_locations=None):
@@ -457,9 +458,6 @@ def meanXInStencil(X,stencil):
 	# Return nan if empty
 	if stencil.sum() == 0:
 		return np.nan
-	# # Return nan if only nans
-	# if np.isnan(X[stencil]).sum() == stencil.sum():
-	# 	return np.nan
 	# Otherwise compute nanmean
 	return cn.nanmean(X[stencil])
 
@@ -471,7 +469,6 @@ def meanXAtYRank(rank,X,Y,ranks=None,bins=None,rank_locations=None):
 
 	# Return mean
 	return meanXInStencil(X,stencil_Q)
-	
 
 ## Mean of X at locations of bins of Y1,Y2
 def meanXAtY1Y2Ranks(Y1rank,Y2rank,X,Y1,Y2,
@@ -603,6 +600,7 @@ def XPercentilesAtYRank(rank_X,X,ranks_Y,Y,ranks_X=None,bins_X=None,
 	stencil_Q = getRankLocations(rank_X,Y,ranks_X,bins_X,rank_locations_X)
 	# Compute percentile
 	X_at_rank = X[stencil_Q] if cn == np else X[stencil_Q].compute()
+	X_at_rank = X_at_rank[np.logical_not(np.isnan(X_at_rank))]
 	if X_at_rank.size == 0 :
 		out = np.array([np.nan]*len(ranks_Y))
 	else:
@@ -621,4 +619,18 @@ def XPercentilesAtAllYRanks(targetranks_X,X,ranks_Y,Y,ranks_X,bins_X=None,
 		out[iQ] = XPercentilesAtYRank(rank_X,X,ranks_Y,Y,ranks_X,bins_X,
 			rank_locations_X)
 	return out
+
+
+def getRanksOfValues(values,ranks,percentiles,bins):
+    
+    v_ranks = np.empty(values.shape)
+    v_ranks[:] = np.nan
+    for ind in np.ndindex(values.shape):
+        ref_array = (bins-values[ind])
+        ref_array[np.isnan(ref_array)] = -1e30
+        i_rank = np.argmax(ref_array>0)-1
+        if  values[ind] >= bins[i_rank] and values[ind] <= bins[i_rank+1]:
+            v_ranks[ind] = ranks[i_rank]
+
+    return v_ranks
 

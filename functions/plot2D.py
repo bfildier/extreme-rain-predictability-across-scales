@@ -12,6 +12,7 @@ import warnings
 
 #---- Own modules ----#
 from plot1DInvLog import *
+from statisticalDistributions import *
 
 
 #---- Functions ----#
@@ -72,7 +73,10 @@ def addHatchBelowThreshold(ax,var_ref,threshold):
 
 
 def subplot2DRanksILog(ax,ranksX,ranksY,Z,cmap=plt.cm.RdBu_r,alpha=None,
-	transformX=False,transformY=False,range_type='sym_to_one',vmin=None,vmax=None):
+	transformX=False,transformY=False,range_type='sym_to_one',vmin=None,vmax=None,
+	Z_mode='linear',ranksZ=None):
+
+	"""ranksZ only used if Z_mode is invlog."""
 
 	warnings.filterwarnings("ignore", category=RuntimeWarning)
 
@@ -84,9 +88,7 @@ def subplot2DRanksILog(ax,ranksX,ranksY,Z,cmap=plt.cm.RdBu_r,alpha=None,
 	y = np.flipud(1./(1-ranksY/100.))
 	X,Y = np.meshgrid(x,y)
 
-	def getRangeAndMask(Z,vmin,vmax):
-		# mask nan values
-		m = np.ma.masked_where(np.isnan(Z),Z)
+	def getRange(Z,vmin,vmax):
 		# compute display range
 		if vmin is None or vmax is None:
 			if range_type == 'sym_to_one':
@@ -99,29 +101,74 @@ def subplot2DRanksILog(ax,ranksX,ranksY,Z,cmap=plt.cm.RdBu_r,alpha=None,
 			elif range_type == 'full_positive':
 				vmin = np.nanmin(Z[Z>0])
 				vmax = np.nanmax(Z)
-		return m,vmin,vmax
+		return vmin,vmax
+
+	def plot(X,Y,Z,cmap,alpha,vmin,vmax,Z_mode,ranksZ):
+		# mask nan values
+		m = np.ma.masked_where(np.isnan(Z),Z)
+		if Z_mode == 'linear':
+			im = ax.pcolor(X,Y,m, cmap=cmap,alpha=alpha,vmin=vmin,vmax=vmax)
+		elif Z_mode == 'log':
+			im = ax.pcolor(X,Y,m, cmap=cmap,alpha=alpha,
+				norm=LogNorm(vmin=vmin, vmax=vmax))
+		elif Z_mode == 'invlog':
+			# transformed values to plot
+			Z_new = np.empty(Z.shape)
+			Z_new[:] = np.nan
+			for ind in np.ndindex(Z.shape):
+				if not np.isnan(Z[ind]):
+					i_rank = indexOfRank(Z[ind],ranksZ)
+					# print(Z[ind],i_rank,ranksZ[-1-i_rank])
+					Z_new[ind] = ranksZ[-1-i_rank]
+			m = np.ma.masked_where(np.isnan(Z_new),Z_new)
+			# find range of transformed values
+			vmin = 1/(1-np.nanmax(ranksZ)/100)
+			vmax = 1
+			# revert cmap
+			cmap_r = '%s_r'%cmap if not cmap.endswith('_r') else cmap[:-2]
+			im = ax.pcolor(X,Y,1/(1-m/100), cmap=cmap_r,alpha=alpha,
+				norm=LogNorm(vmin=vmin,vmax=vmax))
+		return im
 
 	# plot
 	if isinstance(Z,list):
 		for i in range(len(y)):
 			a = alpha[i] if alpha is not None else 1
 			cm = cmap[i] if isinstance(cmap,list) else cmap
-			m,vmin,vmax = getRangeAndMask(Z[i],vmin,vmax)
-			im = ax.pcolor(X,Y,m, cmap=cmap,alpha=alpha,
-				norm=LogNorm(vmin=vmin, vmax=vmax))
+			vmin,vmax = getRange(Z[i],vmin,vmax)
+			im = plot(X,Y,Z,cmap,alpha,vmin,vmax,Z_mode,ranksZ)
 	else:
 		# warnings.filterwarnings("ignore", category=RuntimeWarning)
-		m,vmin,vmax = getRangeAndMask(Z,vmin,vmax)
-		im = ax.pcolor(X,Y,m, cmap=cmap,alpha=alpha,
-			norm=LogNorm(vmin=vmin, vmax=vmax))
+		vmin,vmax = getRange(Z,vmin,vmax)
+		im = plot(X,Y,Z,cmap,alpha,vmin,vmax,Z_mode,ranksZ)
 
 	# colorbar
-	cb = plt.colorbar(im,ticks=[vmin,1,vmax])
-	cb.ax.set_yticklabels([str(vmin), '1', str(vmax)])
+	if range_type == 'sym_to_one':
+		cb = plt.colorbar(im,ticks=[vmin,1,vmax])
+		cb.ax.set_yticklabels([str(vmin), '1', str(vmax)])
+	else:
+		if Z_mode == 'invlog':
+			cb = plt.colorbar(im)
+			tklb = cb.ax.get_yticklabels()
+			imax = ranksZ.size // 10
+			newtklb = []
+			for tk in tklb:
+				if tk.get_text() != '':
+					i = int(tk.get_text().split('^{')[-1].split('}}')[0])
+					newtklb.append(str(100*(1-10**(i-imax))))
+				else:
+					newtklb.append('')
+			cb.ax.set_yticklabels(newtklb)
+			cb.ax.invert_yaxis()
+		else:
+			cb = plt.colorbar(im)
+
 
 	# transform x-axis
 	if transformX:
 		transformXaxisIL(ax,x,offset=1)
 	if transformY:
 		transformYaxisIL(ax,y,offset=1)
+
+	return cb
 
