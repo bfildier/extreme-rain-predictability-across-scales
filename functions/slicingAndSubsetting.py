@@ -19,6 +19,7 @@ currentpath = os.path.dirname(os.path.realpath(__file__))
 sys.path.insert(0,os.path.join(os.path.dirname(currentpath),'functions'))
 
 from daskOptions import *
+from CAMsettings import *
     
 #---- Parameters ----#
 
@@ -303,3 +304,24 @@ def coarsenLatLon(var,coarsen_factor):
 
 	return newvar
 
+## Coarsen data along time dimension
+def coarsenTimeStride(var,time_stride,time_stride_ref='1hr'):
+
+	factor = timeResolutionRatio(time_stride,time_stride_ref)
+
+	return coarsenTime(var,factor)
+
+## Coarsen data along time dimension
+def coarsenTime(var,coarsen_factor):
+
+	timedim = 0
+	cn = getArrayType(var)
+	vshape = var.shape
+	ntime = vshape[timedim]
+	ntime_reduced = (ntime//coarsen_factor)*coarsen_factor
+	tempshape = (ntime//coarsen_factor,coarsen_factor)+vshape[1:]
+	newshape = (ntime/coarsen_factor,)+vshape[1:]
+	temp = cn.reshape(var[:ntime_reduced,...],tempshape)
+	newvar = cn.mean(temp,axis=1)
+
+	return newvar
