@@ -70,7 +70,7 @@ def computePercentilesAndBinsFromRanks(sample,ranks,crop=True):
 	if isinstance(sample,np.ndarray):
 		sample_no_nan = sample[np.logical_not(np.isnan(sample))]
 		if sample_no_nan.size == 0:
-			centers = np.array([np.nan]*ranks.shape)
+			centers = np.array([np.nan]*ranks.size)
 		else:
 			centers = np.percentile(sample_no_nan,ranks)
 	elif isinstance(sample,da.core.Array):
@@ -255,8 +255,11 @@ def compute2dDensities(sample1,sample2,mode1='linear',mode2='linear',\
 	ranks2, percentiles2, bins2 = ranksPercentilesAndBins(sample2,mode2,
 		n_pts_per_bin,n_bins_per_decade,n_lin_bins,vmin2,vmax2,crop=False)
 
-	densities, edges1, edges2 = cn.histogram2d(x=sample1,y=sample2,
-		bins=(bins1,bins2),normed=False)
+	if cn.all(cn.isnan(sample1)) or cn.all(cn.isnan(sample2)):
+		densities = np.array([[np.nan]*len(ranks2)]*len(ranks1))
+	else:
+		densities, edges1, edges2 = cn.histogram2d(x=sample1,y=sample2,
+			bins=(bins1,bins2),normed=False)
 
 	return ranks1, percentiles1, bins1, ranks2, percentiles2, bins2, densities
 

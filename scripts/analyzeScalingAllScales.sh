@@ -32,7 +32,7 @@ time_strides='1d'
 #time_strides='1d 2d 4d 8d '
 #time_strides='1d 2d 4d 8d'
 #resolutions='1dx 2dx 3dx 4dx 5dx 6dx 7dx 8dx 9dx'
-resolutions='1dx'
+resolutions='2dx'
 
 ##-- Batch script options --##
 #runmode="regular"

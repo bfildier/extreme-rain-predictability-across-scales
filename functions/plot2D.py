@@ -91,6 +91,8 @@ def subplot2DRanksILog(ax,ranksX,ranksY,Z,cmap=plt.cm.RdBu_r,alpha=None,
 	def getRange(Z,vmin,vmax):
 		# compute display range
 		if vmin is None or vmax is None:
+			if np.all(np.isnan(Z)):
+				return 0.1,10
 			if range_type == 'sym_to_one':
 				expmax = int(np.log10(np.nanmax(Z)))
 				vmax = 10**expmax
