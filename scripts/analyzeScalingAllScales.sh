@@ -28,11 +28,11 @@ compsets='FAMIPC5'
 #compsets='FAMIPC5'
 experiments='piControl'
 #experiments='abrupt4xCO2'
-time_strides='1h 3h 6h 12h '
+time_strides='8d'
 #time_strides='1d 2d 4d 8d '
 #time_strides='1d 2d 4d 8d'
-resolutions='1dx 2dx 3dx 4dx 5dx 6dx 7dx 8dx 9dx'
-#resolutions='1dx'
+#resolutions='1dx 2dx 3dx 4dx 5dx 6dx 7dx 8dx 9dx'
+resolutions='9dx'
 
 ##-- Batch script options --##
 runmode="regular"
