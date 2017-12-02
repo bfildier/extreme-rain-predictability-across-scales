@@ -69,7 +69,10 @@ def computePercentilesAndBinsFromRanks(sample,ranks,crop=True):
 
 	if isinstance(sample,np.ndarray):
 		sample_no_nan = sample[np.logical_not(np.isnan(sample))]
-		centers = np.percentile(sample_no_nan,ranks)
+		if sample_no_nan.size == 0:
+			centers = np.array([np.nan]*ranks.shape)
+		else:
+			centers = np.percentile(sample_no_nan,ranks)
 	elif isinstance(sample,da.core.Array):
 		centers = da.percentile(sample,ranks).compute()
 	breaks = np.convolve(centers,[0.5,0.5],mode='valid')
