@@ -17,13 +17,15 @@ from statisticalDistributions import *
 
 #---- Functions ----#
 
+# Display seconds in the format "%H:%M:%S"
+def time2str(seconds):
+    return (dt.datetime(year=2000,month=1,day=1)+
+            dt.timedelta(seconds=(seconds))).strftime("%H:%M:%S")
 
 ## Save array size and time for execution of script in dataframe
 def saveTiming(fulltimingfile,column_label,arraysize,time_elapsed_s,reset_value=False):
     
     time_elapsed = str(dt.timedelta(seconds=time_elapsed_s))
-    print('Script successfully terminated in %s.'%time_elapsed)
-    print('> Save timing and size info to %s.'%fulltimingfile)
     if os.path.isfile(fulltimingfile):
         timing_df = pd.read_csv(fulltimingfile)
         timing_df.set_index('index',inplace=True) 
