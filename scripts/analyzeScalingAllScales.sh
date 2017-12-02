@@ -18,8 +18,8 @@ template_batch_script=sbatch_${template_nameroot}.sbatch
 
 ##-- Analysis script options --##
 startdate=185005010100
-enddate=185105010000
-#enddate=185005020000
+#enddate=185105010000
+enddate=185005020000
 daskarray=False
 tracktime=True
 bootstrap=True
@@ -28,15 +28,15 @@ compsets='FAMIPC5'
 #compsets='FAMIPC5'
 experiments='piControl'
 #experiments='abrupt4xCO2'
-time_strides='8d'
+time_strides='1d'
 #time_strides='1d 2d 4d 8d '
 #time_strides='1d 2d 4d 8d'
 #resolutions='1dx 2dx 3dx 4dx 5dx 6dx 7dx 8dx 9dx'
-resolutions='9dx'
+resolutions='1dx'
 
 ##-- Batch script options --##
-runmode="regular"
-#runmode="debug"
+#runmode="regular"
+runmode="debug"
 
 ##-- Main --##
 
