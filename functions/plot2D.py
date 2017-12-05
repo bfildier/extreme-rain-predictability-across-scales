@@ -24,7 +24,7 @@ def subplotMultiscaleVar(ax,var,time_strides,cmap='viridis',vmin=None,vmax=None)
 	if vmax is None:
 		vmax = np.nanmax(var)
 
-	plt.imshow(var,cmap=cmap,vmin=vmin,vmax=vmax)
+	im = plt.imshow(var,cmap=cmap,vmin=vmin,vmax=vmax)
 	ax.set_xlabel('Time scale')
 	ax.set_ylabel('Resolution')
 	ax.invert_yaxis()
@@ -53,7 +53,10 @@ def subplotMultiscaleVar(ax,var,time_strides,cmap='viridis',vmin=None,vmax=None)
 	yticklabels = ["%d km"%(240*i) for i in range(len(ax.get_yticks()))]
 	ax.set_yticklabels(labels=yticklabels)
 
-	plt.colorbar()
+	# Colorbar
+	cb = plt.colorbar(im)
+
+	return cb
 
 ## Hatch time_strides/resolutions where the reference value (e.g. sample
 ## size) is below some threshold
@@ -62,7 +65,7 @@ def addHatchBelowThreshold(ax,var_ref,threshold):
     """Assumes that the plot has been made with imshow,
     so that we can refer to grid cells from their indices."""
 
-    N_res, N_times = samplesize.shape
+    N_res, N_times = var_ref.shape
     for i,j in np.ndindex((N_times,N_res)):
         if var_ref[j,i] <= threshold:
             ax.add_patch(patches.Rectangle((i-0.5, j-0.5), 1, 1, 

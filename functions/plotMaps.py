@@ -16,7 +16,7 @@ from math import log10
 #---- Functions ----#
 
 def plotMapTropics(lon2D,lat2D,v,v_min=None,v_max=None,mode=None,above_zero=False,\
-                   title=None,maskcontinents=False,plotfunction='contourf'):
+                   cmap=plt.cm.Greens,title=None,maskcontinents=False,plotfunction='contourf'):
     
     """Assumes that the data is 2D and ranges 30S-30N."""
 
@@ -45,10 +45,10 @@ def plotMapTropics(lon2D,lat2D,v,v_min=None,v_max=None,mode=None,above_zero=Fals
         levs = np.linspace(v_min,v_max,nlev)
         norm = None
     if plotfunction == 'contourf':
-        map.contourf(lon2D,lat2D,v2plot,levels=levs,cmap=plt.cm.Greens,norm = norm)    
+        map.contourf(lon2D,lat2D,v2plot,levels=levs,cmap=cmap,norm = norm)    
         #         map.contourf(lon2D,lat2D,freqMap,cmap=plt.cm.Greens)
     elif plotfunction == 'pcolormesh':
-        map.pcolormesh(lon2D,lat2D,v2plot,cmap=plt.cm.Blues,norm = norm,
+        map.pcolormesh(lon2D,lat2D,v2plot,cmap=cmap,norm = norm,
             vmin=v_min,vmax=v_max)
     map.drawparallels(range(-90, 100, 30),labels=[1,0,0,1])
     map.drawmeridians(range(0,400,90),labels=[1,0,0,1])
