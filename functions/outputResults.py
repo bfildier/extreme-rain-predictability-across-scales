@@ -58,7 +58,7 @@ def saveTiming(fulltimingfile,column_label,arraysize,time_elapsed_s,reset_value=
 ## Load all results for later plotting
 
 # Extract varid in an array for all time_strides and resolutions
-def getTXVarFromResults(varid,results,time_strides,resolutions,iQ_slice,avg_mode='mean'):
+def getTXVarFromResults(varid,results,time_strides,resolutions,iQ_slice=None,avg_mode='mean',var_type='Q-vector'):
     
     """'avg_mode' can be mean or sum"""  
 
@@ -73,11 +73,15 @@ def getTXVarFromResults(varid,results,time_strides,resolutions,iQ_slice,avg_mode
         resolution = resolutions[ires]
         
         try:
-            if avg_mode == 'mean':
-                varidTX[ires,its] = np.nanmean(results[time_stride][resolution][varid][iQ_slice])
-            elif avg_mode == 'sum':
-                varidTX[ires,its] = np.nansum(results[time_stride][resolution][varid][iQ_slice])
+            values = results[time_stride][resolution][varid]
         except KeyError:
             continue
-        
+        if var_type == 'Q-vector':
+            scalar = values[iQ_slice]
+        elif var_type == 'scalar':
+            scalar = values
+        if avg_mode == 'mean':
+                varidTX[ires,its] = np.nanmean(scalar)
+        elif avg_mode == 'sum':
+            varidTX[ires,its] = np.nansum(scalar)
     return varidTX

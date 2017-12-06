@@ -18,7 +18,7 @@ template_batch_script=sbatch_${template_nameroot}.sbatch
 
 ##-- Analysis script options --##
 startdate=185005010100
-enddate=185105010000
+enddate=185009010000
 #enddate=185005020000
 daskarray=False
 tracktime=True
@@ -28,8 +28,9 @@ compsets='FSPCAMm_AMIP FAMIPC5'
 #compsets='FAMIPC5'
 #experiments='piControl'
 experiments='piControl abrupt4xCO2'
-time_strides_all="\'1h\', \'3h\', \'6h\', \'12h\', \'1d\',\'2d\' \'4d\',\'8d\'"
+#time_strides_all="\'1h\', \'3h\', \'6h\', \'12h\', \'1d\',\'2d\' \'4d\',\'8d\'"
 #time_strides="\'1h\',\'3h\',\'6h\',\'12h\',\'1d\',\'2d\',\'4d\',\'8d\'"
+time_strides_all="\'1h\', "
 #resolutions="\'1dx\',"
 resolutions="\'1dx\',\'2dx\',\'3dx\',\'4dx\',\'5dx\',\'6dx\',\'7dx\',\'8dx\',\'9dx\'"
 
@@ -71,7 +72,7 @@ elif [ "$runmode" == "regular" ];
 then 
     sed -i'' 's/^#SBATCH --partition=.*/#SBATCH --partition=regular/' ${template_batch_script}
     sed -i'' 's/.*#SBATCH --qos=.*/#SBATCH --qos=premium/' ${template_batch_script}
-    sed -i'' 's/^#SBATCH --time=.*/#SBATCH --time=04:30:00/' ${template_batch_script}
+    sed -i'' 's/^#SBATCH --time=.*/#SBATCH --time=06:00:00/' ${template_batch_script}
     sed -i'' 's/^#SBATCH --mail-type=.*/#SBATCH --mail-type=FAIL,TIME_LIMIT_90/' ${template_batch_script}
 fi
 
