@@ -48,7 +48,8 @@ def plotMapTropics(lon2D,lat2D,v,v_min=None,v_max=None,mode=None,above_zero=Fals
         map.contourf(lon2D,lat2D,v2plot,levels=levs,cmap=cmap,norm = norm)    
         #         map.contourf(lon2D,lat2D,freqMap,cmap=plt.cm.Greens)
     elif plotfunction == 'pcolormesh':
-        map.pcolormesh(lon2D,lat2D,v2plot,cmap=cmap,norm = norm,
+        m = ma.masked_where(np.isnan(v2plot),v2plot)
+        map.pcolormesh(lon2D,lat2D,m,cmap=cmap,norm = norm,
             vmin=v_min,vmax=v_max)
     map.drawparallels(range(-90, 100, 30),labels=[1,0,0,1])
     map.drawmeridians(range(0,400,90),labels=[1,0,0,1])
