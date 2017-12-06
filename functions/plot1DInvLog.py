@@ -100,7 +100,8 @@ def subplotXShadingRanksILog(ax,ranks,iQ_lims,alpha=0.2,col='0.75',transformX=Fa
     if transformX:
         transformXaxisIL(ax,x)
 
-def addXHatchRanksILog(ax,ranks,iQ_lims,transformX=False):
+def addXHatchRanksILog(ax,ranks,iQ_lims,color='gray',hatch='//',
+    transformX=False):
 
     ax.set_xscale('log')
 
@@ -109,8 +110,8 @@ def addXHatchRanksILog(ax,ranks,iQ_lims,transformX=False):
                           [x[iQ_lims[1]], ax.get_ylim()[0]],\
                           [x[iQ_lims[1]], ax.get_ylim()[1]],\
                           [x[iQ_lims[0]], ax.get_ylim()[1]]],\
-                          closed=True, fill=False, hatch='//',linewidth=0,
-                          color = 'gray'))
+                          closed=True, fill=False, hatch=hatch,linewidth=0,
+                          color=color))
     # transform x-axis
     if transformX:
         transformXaxisIL(ax,x)
