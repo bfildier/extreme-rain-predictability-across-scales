@@ -104,6 +104,7 @@ def subplot2DRanksILog(ax,ranksX,ranksY,Z,cmap=plt.cm.RdBu_r,alpha=None,
 				return 0.1,10
 			if range_type == 'sym_to_one':
 				expmax = int(np.log10(np.nanmax(Z)))
+# 				expmax = np.log10(np.nanmax(Z))
 				vmax = 10**expmax
 				vmin = 1/vmax
 			elif range_type == 'full':
