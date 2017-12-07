@@ -80,8 +80,8 @@ def getTXVarFromResults(varid,results,time_strides,resolutions,iQ_slice=None,avg
             scalar = values[iQ_slice]
         elif var_type == 'scalar':
             scalar = values
-        if avg_mode == 'mean':
-                varidTX[ires,its] = np.nanmean(scalar)
-        elif avg_mode == 'sum':
+        if avg_mode == 'mean' and not np.all(np.isnan(scalar)):
+            varidTX[ires,its] = np.nanmean(scalar)
+        elif avg_mode == 'sum' and not np.all(np.isnan(scalar)):
             varidTX[ires,its] = np.nansum(scalar)
     return varidTX

@@ -73,7 +73,13 @@ def addHatchBelowThreshold(ax,var_ref,threshold):
             ax.add_patch(patches.Rectangle((i-0.5, j-0.5), 1, 1, 
                hatch='//', fill=False, snap=False, linewidth=0.1,color='gray'))
 
+def addHatchAboveThreshold(ax,var_ref,threshold):
+    
+    return addHatchBelowThreshold(ax,-var_ref,-threshold)
 
+def addHatchOnMask(ax,mask):
+    
+    return addHatchAboveThreshold(ax,mask.astype(int),0.5)
 
 def subplot2DRanksILog(ax,ranksX,ranksY,Z,cmap=plt.cm.RdBu_r,alpha=None,
 	transformX=False,transformY=False,range_type='sym_to_one',vmin=None,vmax=None,
