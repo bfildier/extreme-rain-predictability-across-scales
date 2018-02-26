@@ -319,7 +319,7 @@ def computeEfficiencyScalingOGS09(omega,temp,pres,pr_ref,ranks_ref,
 
     return computeEfficiency(pr_sc_zeroeff_Qs,pr_ref_Qs)
 
-## Scaling at all ranks
+## OGS09 scaling at all ranks
 def computeScalingOGS09AtAllRanks(ranks,omega,temp,pres,pr_ref,
     temp_type='environment',relhum=None,parameter=1,ranks_ref=None,
     percentiles_ref=None,efficiency=None,bins=None,rank_locations=None):
