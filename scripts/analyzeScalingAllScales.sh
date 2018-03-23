@@ -83,11 +83,17 @@ do
                 nameroot=${template_nameroot}_${compset}_${experiment}_${time_stride}_${resolution}
                 analysisscript=${nameroot}.py
                 batchscript=sbatch_${nameroot}.sbatch
-
+		
                 # Duplicate analysis script
                 cp ${template_analysis_script} ${analysisscript}
                 # Duplicate batch script
                 cp ${template_batch_script} $batchscript
+
+                if [[ "$resolution" == "1dx" && "${time_stride}" == "1h" ]]; then
+                	echo "split work on two nodes for memory issues"
+		        sed -i'' 's/^#SBATCH --ntasks-per-node=.*/#SBATCH --ntasks-per-node=15/' $batchscript
+                        sed -i'' 's/^#SBATCH --nodes=.*/#SBATCH --nodes=2/' $batchscript
+                fi
 
 ##-- Analysis script options --#
 
