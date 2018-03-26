@@ -529,6 +529,16 @@ def meanXProfileAtYRank(rank,X,Y,ranks,bins=None,rank_locations=None):
 
 	return computeTimeHorizontalMean(X,stencil_Q,is_3D=True)
 
+## Compute mean vertical profile of X within percentile bins of Y
+def meanXProfileAtAllYRanks(targetranks,X,Y,ranks,bins=None,rank_locations=None):
+
+	levdim = 1
+	out = np.array([[np.nan]*X.shape[levdim]]*ranks.size)
+	for rank in targetranks:
+		iQ = indexOfRank(rank,ranks)
+		out[iQ,:] = meanXProfileAtYRank(rank,X,Y,ranks,bins,rank_locations)
+	return out
+
 ## Variance of X at locations of bins of Y
 def varXAtYRank(rank,X,Y,ranks=None,bins=None,rank_locations=None,
 	random_fraction=1):
@@ -555,6 +565,100 @@ def varXAtYRank(rank,X,Y,ranks=None,bins=None,rank_locations=None,
 		with warnings.catch_warnings():
 			warnings.simplefilter("ignore")
 			return da.nanvar(X[stencil_Q][ind]).compute()
+
+## Trace of covariance matrix of random vectors X and Y at a percentile bin of Z
+def covXYAtZRank(rank,X1,X2,Y,ranks=None,bins=None,rank_locations=None,
+	random_fraction=1):
+
+	"""Returns Sigma_X1X2
+	where Sigma_X1X2=Cov(X1_Q,X2_Q)=(X1_Q-muX1_Q) (X2_Q-muX2_Q)^T is the covariance
+	matrix of the points of X1 and X2 in the percentile Q of Y: X1_Q =
+	{X1_i|Y_i=Y_Q} and X2_Q = {X2_i|Y_i=Y_Q}"""
+	
+	cn = getArrayType(Y)
+	# Define nan covariance function
+	def cov(x,y):
+		x_m = np.array([cn.nanmean(x,axis=1)]*x.shape[1]).T
+		y_m = np.array([cn.nanmean(y,axis=1)]*y.shape[1]).T
+		Sigma = (x-x_m) @ (y-y_m).T
+		return Sigma
+
+	# Get rank locations
+	stencil_Q = getRankLocations(rank,Y,ranks,bins,rank_locations)
+
+	# Define sample size of random subset
+	Ntot = stencil_Q.sum()
+	Nsub = int(Ntot*random_fraction)
+
+	# Return nan if empty or singleton
+	if Nsub <= 1:
+		return np.nan
+	# Define random subset of values
+	ind = np.random.choice(Ntot,Nsub,replace=False)
+	# Return nan if number of non nans is too small
+	if Nsub - np.isnan(sampleFlattened(X1,stencil_Q)[0,ind]).sum() <= 1:
+		return np.nan
+	# Otherwise compute nanvar
+	if Y.__class__ == np.ndarray:
+		return cov(sampleFlattened(X1,stencil_Q)[:,ind],
+					 sampleFlattened(X2,stencil_Q)[:,ind])
+	elif Y.__class__ == da.core.Array:
+		# with warnings.catch_warnings():
+		# 	warnings.simplefilter("ignore")
+		return cov(sampleFlattened(X1,stencil_Q)[:,ind],
+					 sampleFlattened(X2,stencil_Q)[:,ind]).compute()
+
+
+## Trace of covariance matrix of random vectors X and Y at a percentile bin of Z
+def trCovXYAtZRank(rank,X1,X2,Y,ranks=None,bins=None,rank_locations=None,
+	random_fraction=1):
+
+	"""Returns Tr(Sigma_X1X2)
+	where Sigma_X1X2=Cov(X1_Q,X2_Q)=(X1_Q-muX1_Q) (X2_Q-muX2_Q)^T is the covariance
+	matrix of the points of X1 and X2 in the percentile Q of Y: X1_Q =
+	{X1_i|Y_i=Y_Q} and X2_Q = {X2_i|Y_i=Y_Q}"""
+
+	cn = getArrayType(Y)
+	# Define nan covariance function
+	def trCov(x,y):
+		x_m = np.array([cn.nanmean(x,axis=1)]*x.shape[1]).T
+		y_m = np.array([cn.nanmean(y,axis=1)]*y.shape[1]).T
+		Sigma = (x-x_m) @ (y-y_m).T
+		return np.trace(Sigma)
+
+	# Get rank locations
+	stencil_Q = getRankLocations(rank,Y,ranks,bins,rank_locations)
+
+	# Define sample size of random subset
+	Ntot = stencil_Q.sum()
+	Nsub = int(Ntot*random_fraction)
+
+	# Return nan if empty or singleton
+	if Nsub <= 1:
+		return np.nan
+	# Define random subset of values
+	ind = np.random.choice(Ntot,Nsub,replace=False)
+	# Return nan if number of non nans is too small
+	if Nsub - np.isnan(sampleFlattened(X1,stencil_Q)[0,ind]).sum() <= 1:
+		return np.nan
+	# Otherwise compute nanvar
+	if Y.__class__ == np.ndarray:
+		return trCov(sampleFlattened(X1,stencil_Q)[:,ind],
+					 sampleFlattened(X2,stencil_Q)[:,ind])
+	elif Y.__class__ == da.core.Array:
+		# with warnings.catch_warnings():
+		# 	warnings.simplefilter("ignore")
+		return trCov(sampleFlattened(X1,stencil_Q)[:,ind],
+					 sampleFlattened(X2,stencil_Q)[:,ind]).compute()
+
+## Trace of covariance matrix of vectors X and Y at all percentiles of Z
+def trCovXYAtAllZRanks(targetranks,X1,X2,Y,ranks,bins=None,rank_locations=None):
+
+	out = np.array([np.nan]*ranks.size)
+	for rank in targetranks:
+		iQ = indexOfRank(rank,ranks)
+		out[iQ] = trCovXYAtZRank(rank,X1,X2,Y,ranks,bins,rank_locations)
+	return out
 
 ## Variance of X within given precentile bins of Y
 def varXAtAllYRanks(targetranks,X,Y,ranks,bins=None,rank_locations=None,
