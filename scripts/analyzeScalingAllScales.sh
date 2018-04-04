@@ -24,11 +24,11 @@ daskarray=False
 tracktime=True
 bootstrap=True
 plotAll2dPDFs=True
-compsets='FAMIPC5'
 #compsets='FAMIPC5'
+compsets='FSPCAMm_AMIP'
 experiments='piControl'
 #experiments='abrupt4xCO2'
-time_strides='1h'
+time_strides='1d'
 #time_strides='1d 2d 4d 8d '
 #time_strides='1d 2d 4d 8d'
 #resolutions='1dx 2dx 3dx 4dx 5dx 6dx 7dx 8dx 9dx'
@@ -40,8 +40,12 @@ runmode="regular"
 
 ##-- Main --##
 
+##!!! CHOOSE WHICH SCRIPT TO EXECUTE HERE
+#template_script=analyzePointWiseScaling_template.ipynb
+template_script=analyzePointWiseScalingOGS09VariabilityWithEOF_template.ipynb
+
 # Template scripts
-./ipynb2py36.sh analyzePointWiseScaling_template.ipynb $SCRIPTDIR/${template_nameroot}
+./ipynb2py36.sh ${template_script} $SCRIPTDIR/${template_nameroot}
 cp sbatch_analyzePointWiseScaling_template.sbatch $SCRIPTDIR/${template_batch_script}
 
 cd $SCRIPTDIR
