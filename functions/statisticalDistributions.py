@@ -303,6 +303,7 @@ def getStencilAtRank(rank,ranks,bins,Y):
 	cn = getArrayType(Y)
 	i_Q = indexOfRank(rank,ranks)
 	mask_Q = cn.logical_and(Y > bins[i_Q-1],Y <= bins[i_Q])
+	# mask_Q = cn.logical_and(Y > bins[i_Q],Y <= bins[i_Q+1])
 
 	return mask_Q
 
