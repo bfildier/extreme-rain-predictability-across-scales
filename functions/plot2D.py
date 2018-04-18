@@ -7,6 +7,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import patches
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.colors import LogNorm
 import warnings
 
@@ -17,16 +18,19 @@ from statisticalDistributions import *
 
 #---- Functions ----#
 
-def subplotMultiscaleVar(ax,var,time_strides,cmap='viridis',vmin=None,vmax=None):
+def subplotMultiscaleVar(ax,var,time_strides,cmap='viridis',vmin=None,vmax=None,cb_on=True,sharey=False):
 
 	if vmin is None:
 		vmin = np.nanmin(var)
 	if vmax is None:
 		vmax = np.nanmax(var)
 
-	im = plt.imshow(var,cmap=cmap,vmin=vmin,vmax=vmax)
+	im = ax.imshow(var,cmap=cmap,vmin=vmin,vmax=vmax)
 	ax.set_xlabel('Time scale')
-	ax.set_ylabel('Resolution')
+	if not sharey:
+		ax.set_ylabel('Resolution')
+	else:
+		plt.setp(ax.get_yticklabels(), visible=False)
 	ax.invert_yaxis()
 
 	# t_hours = list(map(inHours,time_strides))
@@ -54,9 +58,11 @@ def subplotMultiscaleVar(ax,var,time_strides,cmap='viridis',vmin=None,vmax=None)
 	ax.set_yticklabels(labels=yticklabels)
 
 	# Colorbar
-	cb = plt.colorbar(im)
-
-	return cb
+	if cb_on:
+		divider = make_axes_locatable(ax)
+		cax = divider.append_axes("right", size="5%", pad=0.2)
+		cb = plt.colorbar(im,cax=cax)
+		return cb
 
 ## Hatch time_strides/resolutions where the reference value (e.g. sample
 ## size) is below some threshold
