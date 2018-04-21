@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH --mail-user=bfildier@lbl.gov
 #SBATCH --mail-type=ALL
-#SBATCH --job-name="analyzePointWiseScalingOmega500TsPs"
-#SBATCH --output="../logs/analyzePointWiseScalingOmega500TsPs.%j.%N.out"
+#SBATCH --job-name="analyzePointWiseScaling"
+#SBATCH --output="../logs/analyzePointWiseScaling.%j.%N.out"
 #SBATCH --account=m1517
 #SBATCH --partition=debug
 ##SBATCH --qos=premium

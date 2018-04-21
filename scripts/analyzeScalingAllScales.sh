@@ -42,7 +42,7 @@ runmode="regular"
 
 ##!!! CHOOSE WHICH SCRIPT TO EXECUTE HERE
 #template_script=analyzePointWiseScaling_template.ipynb
-template_script=analyzePointWiseScalingOGS09VariabilityWithEOF_template.ipynb
+template_script=analyzePointWiseScalingOGS09Variability_template.ipynb
 
 # Template scripts
 ./ipynb2py36.sh ${template_script} $SCRIPTDIR/${template_nameroot}
@@ -58,6 +58,15 @@ sed -i'' 's/^bootstrap =.*/bootstrap = '${bootstrap}'/' ${template_analysis_scri
 sed -i'' 's/^plotAll2dPDFs =.*/plotAll2dPDFs = '${plotAll2dPDFs}'/' ${template_analysis_script}
 
 # Change run options in batch script
+if [ "${template_script}" == "analyzePointWiseScalingOGS09Variability_template.ipynb" ];
+then 
+    sed -i'' 's/^#SBATCH --job-name=.*/#SBATCH --job-name=analyzeVariabilityOGS09/' ${template_batch_script}
+    sed -i'' 's/^#SBATCH --output=.*/#SBATCH --output=..\/logs\/analyzeVariabilityOGS09.%j.%N.out/' ${template_batch_script}
+elif [ "${template_script}" == "analyzePointWiseScaling_template.ipynb" ];
+then
+    sed -i'' 's/^#SBATCH --job-name=.*/#SBATCH --job-name=analyzePointWiseScaling/' ${template_batch_script}
+    sed -i'' 's/^#SBATCH --output=.*/#SBATCH --output=..\/logs\/analyzePointWiseScaling.%j.%N.out/' ${template_batch_script}
+fi
 if [ "$runmode" == "debug" ];
 then
     sed -i'' 's/^#SBATCH --partition=.*/#SBATCH --partition=debug/' ${template_batch_script}
