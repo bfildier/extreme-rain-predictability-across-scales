@@ -66,18 +66,25 @@ def subplotMultiscaleVar(ax,var,time_strides,cmap='viridis',vmin=None,vmax=None,
 
 ## Hatch time_strides/resolutions where the reference value (e.g. sample
 ## size) is below some threshold
-def addHatchBelowThreshold(ax,var_ref,threshold):
+def addHatchBelowThreshold(ax,var_ref,threshold,hide=True):
 
-    """Assumes that the plot has been made with imshow,
-    so that we can refer to grid cells from their indices."""
+	"""Assumes that the plot has been made with imshow,
+	so that we can refer to grid cells from their indices."""
 
-    N_res, N_times = var_ref.shape
-    for i,j in np.ndindex((N_times,N_res)):
-        if var_ref[j,i] <= threshold:
-            ax.add_patch(patches.Rectangle((i-0.5, j-0.5), 1, 1, 
-               fill=True, snap=False, linewidth=0,color='white'))
-            ax.add_patch(patches.Rectangle((i-0.5, j-0.5), 1, 1, 
-               hatch='//', fill=False, snap=False, linewidth=0.1,color='gray'))
+	N_res, N_times = var_ref.shape
+	for i,j in np.ndindex((N_times,N_res)):
+		if var_ref[j,i] <= threshold:
+			if hide:
+				ax.add_patch(patches.Rectangle((i-0.5, j-0.5), 1, 1, 
+					fill=True, snap=False, linewidth=0,color='white'))
+				ax.add_patch(patches.Rectangle((i-0.5, j-0.5), 1, 1, 
+					hatch='//', fill=False, snap=False, linewidth=0.1,color='gray'))
+			else:
+				ax.add_patch(patches.Rectangle((i-0.5, j-0.5), 1, 1, 
+					hatch='//', fill=False, snap=False, linewidth=0,color='white'))
+				# ax.add_patch(patches.Rectangle((i-0.5, j-0.5), 1, 1, 
+				# 	hatch='/', fill=False, snap=False, linewidth=0,color='black'))
+
 
 def addHatchAboveThreshold(ax,var_ref,threshold):
     
