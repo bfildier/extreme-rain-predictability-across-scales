@@ -18,7 +18,7 @@ hostname = socket.gethostname()
 ## Define dataroot
 def getDataroot(compset=None):
 	## Host name
-	if hostname in ["jollyjumper","Jordans-Air"] or "ucbvpn" in hostname:
+	if hostname == "jollyjumper" or "Jordans" in hostname or "ucbvpn" in hostname:
 		## Parent directory to load data
 		dataroot = "/Users/bfildier/Data"
 	elif "edison" in hostname or "cori" in hostname or "nid" in hostname:
@@ -40,7 +40,7 @@ def getInputDirectories(compset,experiment):
 	case = "bf_%s_%s"%(compset,experiment)
 	dataroot = getDataroot(compset)
 
-	if hostname in ["jollyjumper","Jordans-Air"] or "ucbvpn" in hostname:
+	if hostname == "jollyjumper" or "Jordans" in hostname or "ucbvpn" in hostname:
 		inputdir = os.path.join(dataroot,"simulations",case)		
 	elif "edison" in hostname or "cori" in hostname or "nid" in hostname:
 		inputdir = os.path.join(dataroot,'archive',case,"atm/hist")
