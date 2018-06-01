@@ -66,7 +66,7 @@ def subplotMultiscaleVar(ax,var,time_strides,cmap='viridis',vmin=None,vmax=None,
 
 ## Hatch time_strides/resolutions where the reference value (e.g. sample
 ## size) is below some threshold
-def addHatchBelowThreshold(ax,var_ref,threshold,hide=True):
+def addHatchBelowThreshold(ax,var_ref,threshold,hatch='//',hide=True):
 
 	"""Assumes that the plot has been made with imshow,
 	so that we can refer to grid cells from their indices."""
@@ -78,21 +78,25 @@ def addHatchBelowThreshold(ax,var_ref,threshold,hide=True):
 				ax.add_patch(patches.Rectangle((i-0.5, j-0.5), 1, 1, 
 					fill=True, snap=False, linewidth=0,color='white'))
 				ax.add_patch(patches.Rectangle((i-0.5, j-0.5), 1, 1, 
-					hatch='//', fill=False, snap=False, linewidth=0.1,color='gray'))
+					hatch=hatch, fill=False, snap=False, linewidth=0.1,color='gray'))
 			else:
-				ax.add_patch(patches.Rectangle((i-0.5, j-0.5), 1, 1, 
-					hatch='//', fill=False, snap=False, linewidth=0,color='white'))
+				if hatch == '.':
+					ax.add_patch(patches.Rectangle((i-0.5, j-0.5), 1, 1, 
+						hatch=hatch, fill=False, snap=False, linewidth=0,color='black'))
+				else:
+					ax.add_patch(patches.Rectangle((i-0.5, j-0.5), 1, 1, 
+						hatch=hatch, fill=False, snap=False, linewidth=0,color='white'))
 				# ax.add_patch(patches.Rectangle((i-0.5, j-0.5), 1, 1, 
 				# 	hatch='/', fill=False, snap=False, linewidth=0,color='black'))
 
 
-def addHatchAboveThreshold(ax,var_ref,threshold):
+def addHatchAboveThreshold(ax,var_ref,threshold,hatch='//',hide=True):
     
-    return addHatchBelowThreshold(ax,-var_ref,-threshold)
+    return addHatchBelowThreshold(ax,-var_ref,-threshold,hatch=hatch,hide=hide)
 
-def addHatchOnMask(ax,mask):
+def addHatchOnMask(ax,mask,hatch='//',hide=True):
     
-    return addHatchAboveThreshold(ax,mask.astype(int),0.5)
+    return addHatchAboveThreshold(ax,mask.astype(int),0.5,hatch=hatch,hide=hide)
 
 def subplot2DRanksILog(ax,ranksX,ranksY,Z,cmap=plt.cm.RdBu_r,alpha=None,
 	transformX=False,transformY=False,range_type='sym_to_one',vmin=None,vmax=None,
