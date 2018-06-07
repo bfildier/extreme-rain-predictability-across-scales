@@ -17,12 +17,12 @@ chunks = 100000
 ## Get module corresponding to array type
 def getArrayType(array):
 
-	if array.__class__ == np.ndarray:
+	if array.__class__.__bases__[0] is np.ndarray:
 		cn = np # stands for 'class name'
 	elif array.__class__ == da.core.Array:
 		cn = da
 	else:
-		print("Unvalid data type:", type(array))
+		print("[daskOptions.getArrayType] Unvalid data type:", type(array))
 		return 
 
 	return cn

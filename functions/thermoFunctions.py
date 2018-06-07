@@ -43,8 +43,13 @@ def airDensity(temp,pres,shum):
     rho_moist = (rho_dry)/(virtual_coef)
 
     return rho_moist
+    ## Goff Gratch equation
+    e_sat_overice =  -9.09718 (273.16/T - 1)                                                             [12] 
+                   - 3.56654 np.log(273.16/ T) 
+                   + 0.876793 (1 - T/ 273.16) 
+                   + Log10(6.1071) 
 
-## Saturation vapor pressure from Buck (1996)
+## Saturation vapor pressure from Goff-Gratch (1984)
 def saturationVaporPressure(temp):
 
     """Argument: Temperature (K) as a numpy.ndarray or dask.array
@@ -60,20 +65,33 @@ def saturationVaporPressure(temp):
         # Initialize
         e_sat = np.zeros(temp.shape)
         e_sat[whereAreNans] = np.nan
-        # T > 0C
+        #!!! T > 0C
         overliquid = (temp_wo_Nans > T_0)
+        ## Buck
         e_sat_overliquid = 611.21*np.exp(np.multiply(18.678-(temp-T_0)/234.5,
                                                       np.divide((temp-T_0),257.14+(temp-T_0))))
+        # ## Goff Gratch equation  for liquid water below 0ºC
+        # e_sat_overliquid = np.power(10,-7.90298*(373.16/temp-1)
+        #             + 5.02808*np.log10(373.16/temp) 
+        #             - 1.3816e-7*(np.power(10,11.344*(1-temp/373.16)) -1) 
+        #            + 8.1328e-3*(np.power(10,-3.49149*(373.16/temp-1)) -1) 
+        #            + np.log10(1013.246)) 
         e_sat[overliquid] = e_sat_overliquid[overliquid]
-        # T < 0C 
+        #!!! T < 0C 
         overice = (temp_wo_Nans < T_0)
-        e_sat_overice = 611.15*np.exp(np.multiply(23.036-(temp-T_0)/333.7,
-                                                   np.divide((temp-T_0),279.82+(temp-T_0))))
+        # ## Buck
+        # e_sat_overice = 611.15*np.exp(np.multiply(23.036-(temp-T_0)/333.7,
+        #                                            np.divide((temp-T_0),279.82+(temp-T_0))))
+        ## Goff Gratch equation over ice 
+        e_sat_overice =  100*np.power(10,-9.09718*(273.16/temp - 1) 
+                    - 3.56654*np.log10(273.16/temp) 
+                    + 0.876793*(1 - temp/ 273.16) 
+                    + np.log10(6.1071))
         e_sat[overice] = e_sat_overice[overice]
 
         return e_sat       # in Pa
 
-    if temp.__class__ == np.ndarray:
+    if temp.__class__.__bases__[0] is np.ndarray:
         return qvstar_numpy(temp)
     elif temp.__class__ == da.core.Array:
         return da.map_blocks(qvstar_numpy,temp,dtype=np.float64)

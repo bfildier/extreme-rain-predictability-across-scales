@@ -399,7 +399,7 @@ def getRankLocations(rank,Y,ranks=None,bins=None,rank_locations=None):
 			return rank_locations[rank_id]
 	
 	# If had not been computed before, compute it...
-	if Y.__class__ == np.ndarray:
+	if Y.__class__.__bases__[0] is np.ndarray:
 		stencil_Q = getStencilAtRank(rank,ranks,bins,Y)
 	elif Y.__class__ == da.core.Array:
 		stencil_Q = da.map_blocks(lambda x: getStencilAtRank(rank,
