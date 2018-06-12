@@ -136,4 +136,19 @@ def add1to1Line(ax):
 
     ax.plot([xmin,xmax],[xmin,xmax],'k',lw=1)
 
+def highlightPointRanksILog(ax,pt):
+
+    x_pt = 1./(1-pt[0]/100)
+    y_pt = pt[1]
+    # y axis, linear
+    ylims = ax.get_ylim()
+    ymax = (y_pt-ylims[0])/(ylims[1]-ylims[0])
+    ax.axvline(x=x_pt,ymax=ymax,linewidth=0.5,c='gray')
+    # x axis, use log 
+    xlims = ax.get_xlim()    
+    xmax = (log(x_pt)-log(xlims[0]))/(log(xlims[1])-log(xlims[0]))
+    ax.axhline(y=y_pt,xmax=xmax,linewidth=0.5,c='gray')
+    # Draw point
+    ax.scatter(x_pt,y_pt,marker='o',c='gray')
+
 
