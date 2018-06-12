@@ -44,7 +44,7 @@ def transformYaxisIL(ax,y,offset=0):
     ax.set_yticklabels(labels)
 
 def subplotRanksILog(ax,ranks,y,col=None,ltype=None,linewidth=None,alpha=None,
-    transformX=False):
+    labels=None,transformX=False):
     
     ax.set_xscale('log')
 
@@ -53,13 +53,16 @@ def subplotRanksILog(ax,ranks,y,col=None,ltype=None,linewidth=None,alpha=None,
     # plot
     if isinstance(y,list):
         for i in range(len(y)):
+            lab = None
+            if labels is not None:
+                lab = labels[i]
             lt = ltype[i] if ltype is not None else '-'
             a = alpha[i] if alpha is not None else 1
             c = col[i] if col is not None else 1
             lw = linewidth[i] if linewidth is not None else 1.5
-            ax.plot(x,y[i],c=c,alpha=a,linestyle=lt,linewidth=lw)
+            ax.plot(x,y[i],c=c,alpha=a,linestyle=lt,linewidth=lw,label=lab)
     else:
-        ax.plot(x,y,c=col,alpha=alpha,linestyle=ltype,linewidth=linewidth)
+        ax.plot(x,y,c=col,alpha=alpha,linestyle=ltype,linewidth=linewidth,label=labels)
 
     # transform x-axis
     if transformX:
@@ -101,7 +104,7 @@ def subplotXShadingRanksILog(ax,ranks,iQ_lims,alpha=0.2,col='0.75',transformX=Fa
         transformXaxisIL(ax,x)
 
 def addXHatchRanksILog(ax,ranks,iQ_lims,color='gray',hatch='//',
-    alpha=1,transformX=False):
+    alpha=1,transformX=False,fill=False):
 
     ax.set_xscale('log')
 
@@ -110,7 +113,7 @@ def addXHatchRanksILog(ax,ranks,iQ_lims,color='gray',hatch='//',
                           [x[iQ_lims[1]], ax.get_ylim()[0]],\
                           [x[iQ_lims[1]], ax.get_ylim()[1]],\
                           [x[iQ_lims[0]], ax.get_ylim()[1]]],\
-                          closed=True, fill=False, hatch=hatch,linewidth=0,
+                          closed=True, fill=fill, hatch=hatch,linewidth=0,
                           color=color,alpha=alpha))
     # transform x-axis
     if transformX:

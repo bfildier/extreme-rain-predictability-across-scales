@@ -43,11 +43,6 @@ def airDensity(temp,pres,shum):
     rho_moist = (rho_dry)/(virtual_coef)
 
     return rho_moist
-    ## Goff Gratch equation
-    e_sat_overice =  -9.09718 (273.16/T - 1)                                                             [12] 
-                   - 3.56654 np.log(273.16/ T) 
-                   + 0.876793 (1 - T/ 273.16) 
-                   + Log10(6.1071) 
 
 ## Saturation vapor pressure from Goff-Gratch (1984)
 def saturationVaporPressure(temp):
