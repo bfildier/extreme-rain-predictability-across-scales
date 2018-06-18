@@ -15,13 +15,18 @@ hostname = socket.gethostname()
 
 #---- Functions ----#
 
+## Test whether we are running this code on a laptop on a cluster (NERSC)
+def isLaptop():
+
+	return hostname in ['jollyjumper','tornado'] or "ucbvpn" in hostname
+
 ## Define dataroot
 def getDataroot(compset=None):
 	## Host name
-	if hostname == "jollyjumper" or "Jordans" in hostname or "ucbvpn" in hostname:
+	if isLaptop():
 		## Parent directory to load data
 		dataroot = "/Users/bfildier/Data"
-	elif "edison" in hostname or "cori" in hostname or "nid" in hostname:
+	else:
 		if compset == 'FAMIPC5':
 			dataroot = "/global/cscratch1/sd/bfildier"
 		else:
@@ -40,9 +45,9 @@ def getInputDirectories(compset,experiment):
 	case = "bf_%s_%s"%(compset,experiment)
 	dataroot = getDataroot(compset)
 
-	if hostname == "jollyjumper" or "Jordans" in hostname or "ucbvpn" in hostname:
+	if isLaptop():
 		inputdir = os.path.join(dataroot,"simulations",case)		
-	elif "edison" in hostname or "cori" in hostname or "nid" in hostname:
+	else:
 		inputdir = os.path.join(dataroot,'archive',case,"atm/hist")
 
 	inputdir_processed_day = os.path.join(dataroot,'preprocessed',case,'day')
