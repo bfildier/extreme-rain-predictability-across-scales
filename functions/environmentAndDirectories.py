@@ -46,7 +46,7 @@ def getInputDirectories(compset,experiment):
 	dataroot = getDataroot(compset)
 
 	if isLaptop():
-		inputdir = os.path.join(dataroot,"simulations",case)		
+		inputdir = os.path.join(dataroot,"simulations",case)
 	else:
 		inputdir = os.path.join(dataroot,'archive',case,"atm/hist")
 

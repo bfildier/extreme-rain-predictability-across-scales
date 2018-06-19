@@ -280,7 +280,8 @@ def getPressureCoordinateFunction(input_lev_file,levdim=1):
 	P0 = fh.variables['P0'][:]
 	fh.close()
 	def computeP(ps):
-		if ps.__class__.__bases__[0] is np.ndarray:
+		cn = getArrayType(ps)
+		if cn == np:
 			pres = np.add(np.multiply.outer(P0*np.ones(ps.shape),hyam),\
 				np.multiply.outer(ps,hybm)) # In hPa,mbar
 			return np.moveaxis(pres,-1,levdim)

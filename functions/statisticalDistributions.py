@@ -67,7 +67,8 @@ def computePercentilesAndBinsFromRanks(sample,ranks,crop=True):
 		- centers (corresponding percentiles, or bin centers)
 		- breaks (histogram bin edges)"""
 
-	if isinstance(sample,np.ndarray):
+	cn = getArrayType(sample)
+	if cn is np:
 		sample_no_nan = sample[np.logical_not(np.isnan(sample))]
 		if sample_no_nan.size == 0:
 			centers = np.array([np.nan]*ranks.size)
@@ -397,9 +398,11 @@ def getRankLocations(rank,Y,ranks=None,bins=None,rank_locations=None):
 		if rank_id in rank_locations.keys():
 			# print("rank_id in rank_locations.keys()")
 			return rank_locations[rank_id]
-	
+
+	cn = getArrayType(Y)
+    
 	# If had not been computed before, compute it...
-	if Y.__class__.__bases__[0] is np.ndarray:
+	if cn is np:
 		stencil_Q = getStencilAtRank(rank,ranks,bins,Y)
 	elif Y.__class__ == da.core.Array:
 		stencil_Q = da.map_blocks(lambda x: getStencilAtRank(rank,
@@ -560,7 +563,8 @@ def varXAtYRank(rank,X,Y,ranks=None,bins=None,rank_locations=None,
 	if Nsub - np.isnan(X[stencil_Q][ind]).sum() <= 1:
 		return np.nan
 	# Otherwise compute nanvar
-	if Y.__class__ == np.ndarray:
+	cn = getArrayType(Y)
+	if cn is np:
 		return np.nanvar(X[stencil_Q][ind])
 	elif Y.__class__ == da.core.Array:
 		with warnings.catch_warnings():
@@ -600,7 +604,8 @@ def covMatXYAtZRank(rank,X1,X2,Y,ranks=None,bins=None,rank_locations=None,
 	if Nsub - np.isnan(sampleFlattened(X1,stencil_Q)[0,ind]).sum() <= 1:
 		return np.nan
 	# Otherwise compute nanvar
-	if Y.__class__ == np.ndarray:
+	cn = getArrayType(Y)
+	if cn is np:
 		return cov(sampleFlattened(X1,stencil_Q)[:,ind],
 					 sampleFlattened(X2,stencil_Q)[:,ind])
 	elif Y.__class__ == da.core.Array:
@@ -642,7 +647,8 @@ def trCovXYAtZRank(rank,X1,X2,Y,ranks=None,bins=None,rank_locations=None,
 	if Nsub - np.isnan(sampleFlattened(X1,stencil_Q)[0,ind]).sum() <= 1:
 		return np.nan
 	# Otherwise compute nanvar
-	if Y.__class__ == np.ndarray:
+	cn = getArrayType(Y)
+	if cn is np:
 		return trCov(sampleFlattened(X1,stencil_Q)[:,ind],
 					 sampleFlattened(X2,stencil_Q)[:,ind])
 	elif Y.__class__ == da.core.Array:
@@ -687,7 +693,8 @@ def covAtYRank(rank,X1,X2,Y,ranks=None,bins=None,rank_locations=None):
 	if stencil_Q.sum() <= 1:
 		return np.nan
 	# Otherwise compute nancov
-	if Y.__class__ == np.ndarray:
+	cn = getArrayType(Y)
+	if cn is np:
 		return cov(X1[stencil_Q],X2[stencil_Q])
 	elif Y.__class__ == da.core.Array:
 		# with warnings.catch_warnings():

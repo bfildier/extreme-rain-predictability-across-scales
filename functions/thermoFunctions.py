@@ -51,6 +51,7 @@ def saturationVaporPressure(temp):
     Returns: saturation vapor pressure (Pa) in the same format."""
 
     T_0 = 273.15
+    cn = getArrayType(temp)
     
     def qvstar_numpy(temp):
 
@@ -86,7 +87,7 @@ def saturationVaporPressure(temp):
 
         return e_sat       # in Pa
 
-    if temp.__class__.__bases__[0] is np.ndarray:
+    if cn is np:
         return qvstar_numpy(temp)
     elif temp.__class__ == da.core.Array:
         return da.map_blocks(qvstar_numpy,temp,dtype=np.float64)
@@ -96,7 +97,7 @@ def saturationVaporPressure(temp):
         else:
             return 611.15*np.exp((23.036-(temp-T_0)/333.7)*(temp-T_0)/(279.82+(temp-T_0)))
     else:
-        print("Unvalid data type:", type(temp))
+        print("[Error in thermoFunctions.saturationVaporPressure] Unvalid data type:", type(temp))
         return
 
 ## Compute the saturation specific humidity based on the expressions by Buck
