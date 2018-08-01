@@ -28,7 +28,7 @@ def subplotMultiscaleVar(ax,var,time_strides,cmap='viridis',vmin=None,vmax=None,
 	im = ax.imshow(var,cmap=cmap,vmin=vmin,vmax=vmax)
 	ax.set_xlabel('Time scale')
 	if not sharey:
-		ax.set_ylabel('Resolution')
+		ax.set_ylabel('Spatial scale')
 	else:
 		plt.setp(ax.get_yticklabels(), visible=False)
 	ax.invert_yaxis()
