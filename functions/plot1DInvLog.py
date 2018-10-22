@@ -97,7 +97,7 @@ def subplotXShadingRanksILog(ax,ranks,iQ_lims,alpha=0.2,col='0.75',transformX=Fa
     else:
         x1 = x[iQ_lims[1]]
     # plot
-    ax.axvspan(x0,x1,color = '0.75',alpha=alpha)
+    ax.axvspan(x0,x1,color = col,alpha=alpha)
     
     # transform x-axis
     if transformX:
